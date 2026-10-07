@@ -36,8 +36,8 @@ final class ArrowGateUITests: XCTestCase {
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
     func hint() { app.buttons["pause"].tap(); app.buttons["hint"].tap() }
-    func isPathClear(_ arrow: Arrow, level: Fixture) -> Bool {
-        let occupied = Set(level.arrows.filter { $0.id != arrow.id }.flatMap(\.cells))
+    func isPathClear(_ arrow: Arrow, remaining: [Arrow]? = nil, level: Fixture) -> Bool {
+        let occupied = Set((remaining ?? level.arrows).filter { $0.id != arrow.id }.flatMap(\.cells))
         let delta = deltas[arrow.direction]
         var x = arrow.head.x + delta.0, y = arrow.head.y + delta.1
         while x >= 0 && x < level.size && y >= 0 && y < level.height {
@@ -68,13 +68,14 @@ final class ArrowGateUITests: XCTestCase {
         app.terminate(); app.launchArguments = ["-ui-testing"]; app.launch()
         XCTAssertTrue(app.staticTexts["LEVEL 20 UNLOCKED"].waitForExistence(timeout: 5))
     }
-    func testFirstThreeLevelsRevealPaintings() throws {
-        let levels = Array(try fixtures().prefix(3))
-        let expectedPaintedCells = [36, 18, 66]
-        let names = ["painted-tricolour", "painted-flower", "painted-sunset"]
+    func testFirstFiveLevelsRevealPaintings() throws {
+        let levels = Array(try fixtures().prefix(5))
+        let expectedPaintedCells = [44, 45, 58, 41, 59]
+        let names = ["painted-heart", "painted-pyramid", "painted-tree", "painted-diamond", "painted-rocket"]
         for (index, level) in levels.enumerated() {
             app.launchArguments += ["-level", String(level.number)]
             app.launch(); XCTAssertTrue(board.waitForExistence(timeout: 10))
+            capture("start-\(names[index])")
             for id in level.solution {
                 tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level)
             }
@@ -91,38 +92,49 @@ final class ArrowGateUITests: XCTestCase {
         // Slow only the visual motion to prove touches work while other arrows are still exiting.
         app.launchArguments += ["-level", "1", "-test-exit-duration", "3"]
         app.launch(); XCTAssertTrue(board.waitForExistence(timeout: 10))
-        for id in [0, 1, 2] {
+        for id in level.solution {
             tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level, wait: false)
         }
-        XCTAssertTrue(summary.contains("arrows 0")); XCTAssertTrue(summary.contains("pending 3"))
+        XCTAssertTrue(summary.contains("arrows 0")); XCTAssertFalse(summary.contains("pending 0"))
         XCTAssertEqual(lives, "3"); capture("parallel-exits")
         app.buttons["restart"].tap()
         Thread.sleep(forTimeInterval: 3.5)
-        XCTAssertTrue(summary.contains("arrows 3")); XCTAssertTrue(summary.contains("pending 0"))
+        XCTAssertTrue(summary.contains("arrows \(level.arrows.count)")); XCTAssertTrue(summary.contains("pending 0"))
         XCTAssertEqual(lives, "3"); XCTAssertFalse(app.buttons["nextLevel"].exists)
-        for id in [0, 1, 2] {
+        for id in level.solution {
             tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level, wait: false)
         }
         XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 6))
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS '0 mistakes'")).firstMatch.exists)
     }
     func testRepeatedBlockedTapAndWarningRecovery() throws {
-        let level = try XCTUnwrap(fixtures().dropFirst(2).first)
-        app.launchArguments += ["-level", "3"]; app.launch()
+        let level = try XCTUnwrap(fixtures().first { fixture in
+            fixture.arrows.contains { !isPathClear($0, level: fixture) }
+        })
+        app.launchArguments += ["-level", String(level.number)]; app.launch()
         XCTAssertTrue(board.waitForExistence(timeout: 10))
-        let blocked = try XCTUnwrap(level.arrows.first { $0.id == 8 })
+        let blocked = try XCTUnwrap(level.arrows.first { !isPathClear($0, level: level) })
         tapArrow(blocked, level: level)
         XCTAssertEqual(lives, "2"); XCTAssertTrue(summary.contains("warnings 1")); capture("blocked-warning")
         for _ in 0..<3 { tapArrow(blocked, level: level) }
         XCTAssertEqual(lives, "2"); XCTAssertTrue(summary.contains("warnings 1"))
         hint(); XCTAssertTrue(summary.contains("warnings 1"))
-        for id in 0..<6 {
-            tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level, wait: false)
+        var remaining = level.arrows
+        var cleared = false
+        for id in level.solution where id != blocked.id {
+            let arrow = try XCTUnwrap(remaining.first { $0.id == id })
+            tapArrow(arrow, level: level)
+            remaining.removeAll { $0.id == id }
+            if isPathClear(blocked, remaining: remaining, level: level) {
+                cleared = true
+                break
+            }
         }
-        Thread.sleep(forTimeInterval: 0.37); capture("edge-confetti")
-        Thread.sleep(forTimeInterval: 0.2)
+        XCTAssertTrue(cleared)
+        Thread.sleep(forTimeInterval: 0.2); capture("edge-confetti")
         XCTAssertTrue(summary.contains("warnings 0")); XCTAssertEqual(lives, "2"); capture("warning-cleared")
-        tapArrow(blocked, level: level); XCTAssertEqual(lives, "2"); XCTAssertTrue(summary.contains("arrows 2"))
+        tapArrow(blocked, level: level); XCTAssertEqual(lives, "2")
+        XCTAssertTrue(summary.contains("arrows \(remaining.count - 1)"))
         app.buttons["restart"].tap(); XCTAssertEqual(lives, "3")
         tapArrow(blocked, level: level); XCTAssertEqual(lives, "2")
     }

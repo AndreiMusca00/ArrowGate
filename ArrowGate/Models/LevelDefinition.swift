@@ -40,6 +40,10 @@ struct GateDefinition: Codable {
         self.key = key; self.color = color; self.thawAfterMoves = thawAfterMoves
     }
 }
+struct TargetCell: Hashable, Codable {
+    let cell: Cell
+    let color: ArrowColor
+}
 struct LevelDefinition: Identifiable, Codable {
     let id: Int
     let size: Int
@@ -48,10 +52,19 @@ struct LevelDefinition: Identifiable, Codable {
     let arrows: [ArrowDefinition]
     let gates: [GateDefinition]
     let difficulty: LevelDifficulty?
+    /// Cells that belong to an irregular board. `nil` keeps the legacy rectangle.
+    let activeCells: [Cell]?
+    /// Required final colour for authored image cells. Only a matching arrow may reveal it.
+    let targetCells: [TargetCell]?
     init(id: Int, size: Int, height: Int? = nil, timeLimit: TimeInterval = 180,
-         arrows: [ArrowDefinition], gates: [GateDefinition], difficulty: LevelDifficulty? = nil) {
+         arrows: [ArrowDefinition], gates: [GateDefinition], difficulty: LevelDifficulty? = nil,
+         activeCells: [Cell]? = nil, targetCells: [TargetCell]? = nil) {
         self.id = id; self.size = size; self.height = height ?? size
-        self.timeLimit = timeLimit; self.arrows = arrows; self.gates = gates; self.difficulty = difficulty
+        self.timeLimit = timeLimit; self.arrows = arrows; self.gates = gates
+        self.difficulty = difficulty; self.activeCells = activeCells; self.targetCells = targetCells
     }
-    func contains(_ cell: Cell) -> Bool { (0..<size).contains(cell.x) && (0..<height).contains(cell.y) }
+    func contains(_ cell: Cell) -> Bool {
+        guard (0..<size).contains(cell.x), (0..<height).contains(cell.y) else { return false }
+        return activeCells?.contains(cell) ?? true
+    }
 }

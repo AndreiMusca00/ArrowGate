@@ -37,6 +37,31 @@ enum LevelValidator {
               }) else { return nil }
         let cells = level.arrows.flatMap(\.cells)
         guard cells.allSatisfy(level.contains), Set(cells).count == cells.count else { return nil }
+        if let activeCells = level.activeCells {
+            let insideBounds = activeCells.allSatisfy {
+                (0..<level.size).contains($0.x) && (0..<level.height).contains($0.y)
+            }
+            guard !activeCells.isEmpty, insideBounds,
+                  Set(activeCells).count == activeCells.count,
+                  Set(cells) == Set(activeCells) else { return nil }
+        }
+        if let targets = level.targetCells {
+            let targetCells = targets.map(\.cell)
+            guard !targets.isEmpty,
+                  Set(targetCells).count == targetCells.count,
+                  targetCells.allSatisfy(level.contains) else { return nil }
+            if let activeCells = level.activeCells {
+                guard Set(targetCells) == Set(activeCells) else { return nil }
+            }
+
+            var reachableByColor: [ArrowColor: Set<Cell>] = [:]
+            for arrow in level.arrows {
+                reachableByColor[arrow.color, default: []].formUnion(revealCells(for: arrow, in: level))
+            }
+            guard targets.allSatisfy({ reachableByColor[$0.color]?.contains($0.cell) == true }) else {
+                return nil
+            }
+        }
         var remaining = level.arrows
         var result: [Int] = []
         // Removing an arrow can only free space: every legal choice preserves solvability.
@@ -44,6 +69,16 @@ enum LevelValidator {
             guard let next = PuzzleRules.hint(remaining: remaining, level: level) else { return nil }
             result.append(next.id)
             remaining.removeAll { $0.id == next.id }
+        }
+        return result
+    }
+
+    private static func revealCells(for arrow: ArrowDefinition, in level: LevelDefinition) -> [Cell] {
+        var result = arrow.cells
+        var cell = arrow.head.moved(arrow.direction)
+        while level.contains(cell) {
+            result.append(cell)
+            cell = cell.moved(arrow.direction)
         }
         return result
     }

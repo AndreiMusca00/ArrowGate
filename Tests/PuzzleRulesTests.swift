@@ -42,9 +42,9 @@ final class PuzzleRulesTests: XCTestCase {
             XCTAssertTrue(level.gates.allSatisfy { $0.thawAfterMoves == 0 })
             XCTAssertTrue(level.arrows.allSatisfy { arrow in
                 guard let body = arrow.body else { return false }
-                return body.count >= (level.id <= 3 ? 2 : 3)
+                return body.count >= (level.id <= 5 ? 1 : 3)
             })
-            if level.id > 3 {
+            if level.id > 5 {
                 XCTAssertTrue(level.arrows.allSatisfy { arrow in
                     guard let body = arrow.body else { return false }
                     return zip(body, body.dropFirst()).contains { a, b in arrow.direction.dx == 0 ? a.x != b.x : a.y != b.y }
@@ -58,6 +58,35 @@ final class PuzzleRulesTests: XCTestCase {
         XCTAssertEqual(LevelRepository.level(14).difficulty, .hard)
         XCTAssertEqual(LevelRepository.level(17).difficulty, .superHard)
         XCTAssertEqual(LevelRepository.level(18).difficulty, .easy)
+    }
+    func testFirstFiveBoardsUseFilledIrregularShapes() throws {
+        let expectedCounts = [44, 45, 58, 41, 59]
+        for (level, expectedCount) in zip(LevelRepository.levels.prefix(5), expectedCounts) {
+            let activeCells = try XCTUnwrap(level.activeCells)
+            let targetCells = try XCTUnwrap(level.targetCells)
+            XCTAssertEqual(activeCells.count, expectedCount)
+            XCTAssertEqual(Set(activeCells), Set(level.arrows.flatMap(\.cells)))
+            XCTAssertEqual(Set(activeCells), Set(targetCells.map(\.cell)))
+            XCTAssertEqual(targetCells.count, expectedCount)
+            XCTAssertTrue(level.arrows.contains { arrow in
+                let steps = zip(arrow.cells, arrow.cells.dropFirst()).map {
+                    Cell(x: $1.x - $0.x, y: $1.y - $0.y)
+                }
+                return Set(steps).count > 1
+            }, "Each image should include at least one multi-corner arrow")
+            XCTAssertNotNil(LevelValidator.solution(for: level))
+        }
+        XCTAssertEqual(LevelRepository.level(2).activeCells?.count, 45)
+        XCTAssertLessThan(try XCTUnwrap(LevelRepository.level(3).activeCells).count,
+                          LevelRepository.level(3).size * LevelRepository.level(3).height)
+
+        // The rocket deliberately has red geometry over two blue target pixels.
+        // Those pixels must wait for the blue arrows that later cross them.
+        let rocket = LevelRepository.level(5)
+        let rocketTargets = Dictionary(uniqueKeysWithValues: try XCTUnwrap(rocket.targetCells).map { ($0.cell, $0.color) })
+        XCTAssertTrue(rocket.arrows.filter { $0.color == .red }.flatMap(\.cells).contains {
+            rocketTargets[$0] == .blue
+        })
     }
     func testCollisionChecksEveryCellAndLongArrowTailInAllDirections() {
         for direction in Direction.allCases {
@@ -79,16 +108,28 @@ final class PuzzleRulesTests: XCTestCase {
         let overlap = ArrowDefinition(id: 1, head: arrow.head, direction: .up, color: .red, length: 1)
         XCTAssertNil(LevelValidator.solution(for: LevelDefinition(id: 1, size: 4, arrows: [arrow, overlap], gates: [GateDefinition(key: arrow.gateKey, color: .red)])))
     }
-    func testHintIsLegalAndTutorialStartsWithThreePaintableStripes() throws {
+    func testHintIsLegalAndTutorialStartsWithPaintableHeart() throws {
         for level in LevelRepository.levels {
             let hint = try XCTUnwrap(PuzzleRules.hint(remaining: level.arrows, level: level))
             XCTAssertEqual(PuzzleRules.evaluate(hint, remaining: level.arrows, level: level), .allowed)
         }
         let level = LevelRepository.level(1)
-        XCTAssertEqual(level.arrows.count, 3)
-        XCTAssertTrue(level.arrows.allSatisfy {
-            PuzzleRules.evaluate($0, remaining: level.arrows, level: level) == .allowed
-        })
+        XCTAssertEqual(level.arrows.count, 7)
+        XCTAssertTrue(level.arrows.allSatisfy { $0.color == .red })
+        XCTAssertEqual(Set(level.arrows.flatMap(\.cells)), Set(try XCTUnwrap(level.activeCells)))
+        XCTAssertTrue(level.arrows.contains { PuzzleRules.evaluate($0, remaining: level.arrows, level: level) == .allowed })
+        XCTAssertTrue(level.arrows.contains { PuzzleRules.evaluate($0, remaining: level.arrows, level: level) == .blocked })
+    }
+
+    func testTargetPixelsRequireAReachableArrowOfTheSameColour() throws {
+        let source = LevelRepository.level(1)
+        var targets = try XCTUnwrap(source.targetCells)
+        targets[0] = TargetCell(cell: targets[0].cell, color: .blue)
+        let impossible = LevelDefinition(id: source.id, size: source.size, height: source.height,
+                                         timeLimit: source.timeLimit, arrows: source.arrows,
+                                         gates: source.gates, difficulty: source.difficulty,
+                                         activeCells: source.activeCells, targetCells: targets)
+        XCTAssertNil(LevelValidator.solution(for: impossible))
     }
     func testDuplicateMistakesCostOneLifePerArrowAndReset() {
         var tracker = MistakeTracker()
