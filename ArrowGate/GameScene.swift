@@ -6,18 +6,23 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
     var inputEnabled = true
     private var level: LevelDefinition!
     private var arrowNodes: [Int: SKNode] = [:]
-    private var gateNodes: [GateKey: SKNode] = [:]
     private var travels: [Int: Double] = [:]
     private var motions: [Int: ArrowMotion] = [:]
     private var arrowHeadTextures: [String: SKTexture] = [:]
+    private var guideDots: [Cell: SKShapeNode] = [:]
     private var exiting: Set<Int> = []
     private var warned: Set<Int> = []
-    private var successfulMoves = 0
     private let boardCamera = SKCameraNode()
-    private var arrowLayer = SKCropNode()
-    private var gateWellLayer = SKNode()
+    private var arrowLayer = SKNode()
+    private var paintLayer = SKCropNode()
+    private struct PaintedMark {
+        let dot: SKShapeNode
+        let color: UIColor
+        let order: Int
+    }
+    private var paintedCells: [Cell: PaintedMark] = [:]
+    private var paintSequence = 0
     private var fragmentLayer = SKNode()
-    private var gatesLayer = SKNode()
     private var tutorial = SKNode()
     private var gestures: [UIGestureRecognizer] = []
     private var fitScale: CGFloat = 1
@@ -40,30 +45,29 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
     var zoomFactor: CGFloat { fitScale / boardCamera.xScale }
     var accessibilitySummary: String {
         guard level != nil else { return "Puzzle board" }
-        let frozen = level.gates.filter { $0.thawAfterMoves > successfulMoves }.count
-        return "Level \(level.id); arrows \(arrowNodes.count - exiting.count); pending \(exiting.count); warnings \(warned.count); moves \(successfulMoves); frozen \(frozen); zoom \(String(format: "%.1f", Double(zoomFactor)))"
+        return "Level \(level.id); arrows \(arrowNodes.count - exiting.count); pending \(exiting.count); warnings \(warned.count); painted \(paintedCells.count); zoom \(String(format: "%.1f", Double(zoomFactor)))"
     }
     private func updateAccessibility() { view?.accessibilityValue = accessibilitySummary }
 
     func configure(level: LevelDefinition) {
         boardCamera.removeAllActions(); isIntroducing = false; needsIntroduction = true
         removeAllActions(); removeAllChildren()
-        self.level = level; exiting = []; warned = []; successfulMoves = 0
-        arrowNodes = [:]; gateNodes = [:]; motions = [:]; travels = [:]
+        self.level = level; exiting = []; warned = []
+        arrowNodes = [:]; motions = [:]; travels = [:]
+        guideDots = [:]; paintedCells = [:]; paintSequence = 0
         scaleMode = .resizeFill; backgroundColor = GameStyle.sceneBackground
         addChild(boardCamera); camera = boardCamera
         drawGrid()
-        gateWellLayer = SKNode(); gateWellLayer.zPosition = 4; addChild(gateWellLayer)
-        // Only arrow ink is clipped to the board. Exiting tails disappear through its edge.
-        arrowLayer = SKCropNode(); arrowLayer.zPosition = 5
-        let mask = SKShapeNode(rect: CGRect(x: 0, y: 0, width: boardWidth, height: boardHeight))
-        mask.fillColor = .white; mask.strokeColor = .clear; arrowLayer.maskNode = mask; addChild(arrowLayer)
+        paintLayer = SKCropNode(); paintLayer.zPosition = 0
+        let paintMask = SKShapeNode(rect: CGRect(x: 0, y: 0, width: boardWidth, height: boardHeight))
+        paintMask.fillColor = .white; paintMask.strokeColor = .clear
+        paintLayer.maskNode = paintMask; addChild(paintLayer)
+        // Arrows remain visible after leaving the board and travel all the way to
+        // the visible edge before dissolving into confetti.
+        arrowLayer = SKNode(); arrowLayer.zPosition = 5; addChild(arrowLayer)
         fragmentLayer = SKNode(); fragmentLayer.zPosition = 7; addChild(fragmentLayer)
-        gatesLayer = SKNode(); gatesLayer.zPosition = 10; addChild(gatesLayer)
         tutorial = SKNode(); tutorial.zPosition = 15; addChild(tutorial)
-        for gate in level.gates { drawGate(gate) }
         for arrow in level.arrows { drawArrow(arrow) }
-        updateGates(successfulMoves: 0)
         resetViewport()
         if view != nil { introduceBoard() }
         updateAccessibility()
@@ -108,7 +112,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         needsIntroduction = false
         guard !skipsIntroduction, !UIAccessibility.isReduceMotionEnabled else { return }
         // Overview first; larger boards settle closer to the centre. The overview remains
-        // the zoom-out limit, so a player can always find every perimeter gate again.
+        // the zoom-out limit, so a player can always find every board edge again.
         let focusZoom: CGFloat = min(1.75, max(1.15, CGFloat(max(level.size, level.height)) / 12))
         isIntroducing = true
         let zoom = SKAction.scale(to: fitScale / focusZoom, duration: GameStyle.introDuration)
@@ -161,75 +165,24 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         CGPoint(x: (CGFloat(cell.x) + 0.5) * GameStyle.cellSize, y: (CGFloat(cell.y) + 0.5) * GameStyle.cellSize)
     }
     private func drawGrid() {
-        let path = CGMutablePath()
+        let grid = SKNode()
+        grid.name = "guideGrid"
+        grid.zPosition = -1
+        let origin = GameStyle.cellSize / 2
         for x in 0..<level.size {
             for y in 0..<level.height {
-                let centre = point(Cell(x: x, y: y))
-                path.addEllipse(in: CGRect(x: centre.x - 1.6, y: centre.y - 1.6, width: 3.2, height: 3.2))
+                let cell = Cell(x: x, y: y)
+                let centre = CGPoint(x: origin + CGFloat(x) * GameStyle.cellSize,
+                                     y: origin + CGFloat(y) * GameStyle.cellSize)
+                let dot = SKShapeNode(circleOfRadius: 0.6)
+                dot.position = centre
+                dot.fillColor = GameStyle.guideDot
+                dot.strokeColor = .clear
+                grid.addChild(dot)
+                guideDots[cell] = dot
             }
         }
-        let dots = SKShapeNode(path: path)
-        dots.fillColor = GameStyle.guideDot; dots.strokeColor = .clear
-        dots.zPosition = -1; addChild(dots)
-    }
-    private func gatePosition(_ key: GateKey) -> CGPoint {
-        let lane = (CGFloat(key.lane) + 0.5) * GameStyle.cellSize
-        switch key.side {
-        case .right: return CGPoint(x: boardWidth, y: lane)
-        case .up: return CGPoint(x: lane, y: boardHeight)
-        case .left: return CGPoint(x: 0, y: lane)
-        case .down: return CGPoint(x: lane, y: 0)
-        }
-    }
-    private func drawGate(_ gate: GateDefinition) {
-        let node = SKNode(); node.position = gatePosition(gate.key)
-        node.zRotation = CGFloat(gate.key.side.rawValue) * .pi / 2
-        // Local x=0 is the board edge; the entire socket extends outward.
-        let color = GameStyle.uiColor(gate.color)
-        let glow = SKShapeNode(rect: CGRect(x: 0, y: -17, width: 16, height: 34), cornerRadius: 8)
-        glow.name = "glow"; glow.strokeColor = color; glow.fillColor = .clear
-        glow.lineWidth = 2; glow.glowWidth = 0; glow.alpha = 0; node.addChild(glow)
-        let socket = SKShapeNode(rect: CGRect(x: 2, y: -15, width: 12, height: 30), cornerRadius: 6)
-        socket.zPosition = 2; socket.fillColor = .clear; socket.strokeColor = color
-        socket.lineWidth = 4; node.addChild(socket)
-        let aperture = SKShapeNode(rect: CGRect(x: 4, y: -13, width: 8, height: 26), cornerRadius: 4)
-        // This must be in a separate scene layer. A negative child z-position still
-        // inherits the gate parent's ordering and would paint a white stripe over arrows.
-        aperture.position = node.position; aperture.zRotation = node.zRotation
-        aperture.fillColor = .white; aperture.strokeColor = .clear; aperture.lineWidth = 0
-        gateWellLayer.addChild(aperture)
-        let highlight = SKShapeNode(rect: CGRect(x: 1.5, y: -15.5, width: 13, height: 31), cornerRadius: 6.5)
-        highlight.zPosition = 4; highlight.fillColor = .clear; highlight.strokeColor = color.withAlphaComponent(0.25)
-        highlight.lineWidth = 0.65; node.addChild(highlight)
-        let ice = SKNode(); ice.name = "ice"; ice.zPosition = 5
-        let plate = SKShapeNode(rect: CGRect(x: 4, y: -13, width: 8, height: 26), cornerRadius: 4)
-        plate.fillColor = UIColor(red: 0.50, green: 0.83, blue: 1, alpha: 0.72)
-        plate.strokeColor = UIColor(red: 0.30, green: 0.61, blue: 0.75, alpha: 1); plate.lineWidth = 0.8; ice.addChild(plate)
-        let snow = SKLabelNode(text: "❄"); snow.fontName = "AvenirNext-Medium"; snow.fontSize = 10
-        snow.fontColor = GameStyle.portalWell; snow.verticalAlignmentMode = .center; snow.position.x = 8
-        snow.zPosition = 1; snow.zRotation = -node.zRotation; ice.addChild(snow)
-        let cracks = CGMutablePath(); cracks.move(to: CGPoint(x: 6, y: 11)); cracks.addLine(to: CGPoint(x: 9, y: 7)); cracks.addLine(to: CGPoint(x: 7, y: 3))
-        cracks.move(to: CGPoint(x: 10, y: -11)); cracks.addLine(to: CGPoint(x: 6, y: -7))
-        let crack = SKShapeNode(path: cracks); crack.strokeColor = UIColor(white: 1, alpha: 0.65); crack.zPosition = 1; crack.lineWidth = 0.7; ice.addChild(crack)
-        let badge = SKShapeNode(circleOfRadius: 7.5); badge.name = "badge"; badge.zPosition = 2; badge.position = CGPoint(x: 23, y: 12)
-        badge.fillColor = GameStyle.sceneBackground; badge.strokeColor = GameStyle.uiColor(gate.color); badge.lineWidth = 1.2
-        let count = SKLabelNode(fontNamed: "AvenirNext-DemiBold"); count.name = "count"; count.fontSize = 10; count.fontColor = GameStyle.portalWell
-        count.zPosition = 1; count.verticalAlignmentMode = .center; count.zRotation = -node.zRotation; badge.addChild(count)
-        ice.addChild(badge); node.addChild(ice)
-        gatesLayer.addChild(node); gateNodes[gate.key] = node
-    }
-    func updateGates(successfulMoves: Int) {
-        self.successfulMoves = successfulMoves
-        for gate in level.gates {
-            guard let node = gateNodes[gate.key], let ice = node.childNode(withName: "ice") else { continue }
-            let remaining = max(0, gate.thawAfterMoves - successfulMoves)
-            if remaining == 0, !ice.isHidden, gate.thawAfterMoves > 0 {
-                node.run(.sequence([.scale(to: 1.12, duration: 0.1), .scale(to: 1, duration: 0.16)]))
-            }
-            ice.isHidden = remaining == 0
-            (ice.childNode(withName: "badge/count") as? SKLabelNode)?.text = String(remaining)
-        }
-        updateAccessibility()
+        addChild(grid)
     }
     private struct ArrowPaths {
         let body: [CGPoint]
@@ -241,11 +194,11 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         let local = points.map { CGPoint(x: ($0.x - Double(arrow.head.x)) * Double(GameStyle.cellSize),
                                          y: ($0.y - Double(arrow.head.y)) * Double(GameStyle.cellSize)) }
         let tip = local.last!, dx = CGFloat(arrow.direction.dx), dy = CGFloat(arrow.direction.dy)
-        let base = CGPoint(x: tip.x - dx * 11, y: tip.y - dy * 11)
+        let base = CGPoint(x: tip.x - dx * 7, y: tip.y - dy * 7)
         var body = Array(local.dropLast())
         // Finish a few points inside the triangle. The filled head covers the round
         // cap completely, leaving no seam while never letting the shaft reach the tip.
-        body.append(CGPoint(x: base.x + dx * 3, y: base.y + dy * 3))
+        body.append(CGPoint(x: base.x + dx * 2, y: base.y + dy * 2))
         return ArrowPaths(body: body, tip: tip, direction: arrow.direction)
     }
     private func render(_ arrow: ArrowDefinition, node: SKNode, travel: Double) {
@@ -253,19 +206,20 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         let paths = arrowPaths(arrow, travel: travel)
         for name in ["body", "hint", "warning"] {
             guard let ink = node.childNode(withName: name) else { continue }
+            if name != "body", ink.isHidden { continue }
             layoutArrowInk(ink, paths: paths)
         }
         node.childNode(withName: "warningBadge")?.position = CGPoint(
-            x: CGFloat(arrow.direction.dx) * (CGFloat(travel) * GameStyle.cellSize - 2) + CGFloat(arrow.direction.dy) * 13,
-            y: CGFloat(arrow.direction.dy) * (CGFloat(travel) * GameStyle.cellSize - 2) - CGFloat(arrow.direction.dx) * 13)
+            x: CGFloat(arrow.direction.dx) * (CGFloat(travel) * GameStyle.cellSize - 1) + CGFloat(arrow.direction.dy) * 7,
+            y: CGFloat(arrow.direction.dy) * (CGFloat(travel) * GameStyle.cellSize - 1) - CGFloat(arrow.direction.dx) * 7)
     }
     private func arrowInk(name: String, paths: ArrowPaths, color: UIColor,
                           width: CGFloat) -> SKNode {
         let ink = SKNode(); ink.name = name
         ink.userData = ["width": width, "color": color]
-        let line = SKNode(); line.name = "line"; ink.addChild(line)
+        let line = SKSpriteNode(); line.name = "line"; ink.addChild(line)
         let head = SKSpriteNode(texture: arrowHeadTexture(color: color),
-                                size: CGSize(width: 11, height: 13))
+                                size: CGSize(width: 7, height: 9))
         head.name = "head"; head.zPosition = 1
         head.zRotation = CGFloat(paths.direction.rawValue) * .pi / 2
         ink.addChild(head)
@@ -276,16 +230,29 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         let key = color.description
         if let texture = arrowHeadTextures[key] { return texture }
         let format = UIGraphicsImageRendererFormat()
-        // Covers the 3x board zoom on a Retina display without magnifying the
+        // Covers the maximum board zoom on a Retina display without magnifying the
         // low-resolution texture SpriteKit creates internally for SKShapeNode.
         format.scale = 12; format.opaque = false
-        let image = UIGraphicsImageRenderer(size: CGSize(width: 11, height: 13), format: format).image { context in
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 7, height: 9), format: format).image { context in
             context.cgContext.setAllowsAntialiasing(true)
             context.cgContext.setShouldAntialias(true)
+            let vertices = [CGPoint(x: 7, y: 4.5), CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 9)]
+            let cornerInset: CGFloat = 1.2
+            func insetPoint(from vertex: CGPoint, toward target: CGPoint) -> CGPoint {
+                let dx = target.x - vertex.x, dy = target.y - vertex.y
+                let length = max(0.0001, hypot(dx, dy))
+                return CGPoint(x: vertex.x + dx / length * cornerInset,
+                               y: vertex.y + dy / length * cornerInset)
+            }
             let triangle = UIBezierPath()
-            triangle.move(to: CGPoint(x: 11, y: 6.5))
-            triangle.addLine(to: CGPoint(x: 0, y: 0))
-            triangle.addLine(to: CGPoint(x: 0, y: 13))
+            triangle.move(to: insetPoint(from: vertices[0], toward: vertices[2]))
+            for index in vertices.indices {
+                let vertex = vertices[index]
+                let previous = vertices[(index + vertices.count - 1) % vertices.count]
+                let next = vertices[(index + 1) % vertices.count]
+                triangle.addLine(to: insetPoint(from: vertex, toward: previous))
+                triangle.addQuadCurve(to: insetPoint(from: vertex, toward: next), controlPoint: vertex)
+            }
             triangle.close()
             color.setFill(); triangle.fill()
         }
@@ -294,46 +261,35 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         return texture
     }
     private func layoutArrowInk(_ ink: SKNode, paths: ArrowPaths) {
-        guard let line = ink.childNode(withName: "line"),
+        guard let line = ink.childNode(withName: "line") as? SKSpriteNode,
               let width = ink.userData?["width"] as? CGFloat,
-              let color = ink.userData?["color"] as? UIColor else { return }
-        for child in line.children { child.isHidden = true }
-
-        for (index, pair) in zip(paths.body, paths.body.dropFirst()).enumerated() {
-            let dx = pair.1.x - pair.0.x, dy = pair.1.y - pair.0.y
-            let length = hypot(dx, dy)
-            guard length > 0.001 else { continue }
-            let name = "segment.\(index)"
-            let segment: SKSpriteNode
-            if let existing = line.childNode(withName: name) as? SKSpriteNode {
-                segment = existing
-            } else {
-                segment = SKSpriteNode(color: color, size: .zero); segment.name = name
-                line.addChild(segment)
-            }
-            segment.isHidden = false
-            segment.position = CGPoint(x: (pair.0.x + pair.1.x) / 2,
-                                       y: (pair.0.y + pair.1.y) / 2)
-            segment.size = CGSize(width: length + width, height: width)
-            segment.zRotation = atan2(dy, dx)
+              let color = ink.userData?["color"] as? UIColor,
+              let first = paths.body.first else { return }
+        let centreline = CGMutablePath()
+        centreline.move(to: first)
+        for point in paths.body.dropFirst() { centreline.addLine(to: point) }
+        // Rasterize the complete vector stroke at high resolution. Updating an
+        // SKShapeNode path in-place can briefly retain its previous antialiased
+        // geometry, which looks like a white line while an arrow is moving.
+        let padding = width / 2 + 0.5
+        let bounds = centreline.boundingBoxOfPath.insetBy(dx: -padding, dy: -padding)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 12; format.opaque = false
+        let image = UIGraphicsImageRenderer(size: bounds.size, format: format).image { context in
+            let cg = context.cgContext
+            cg.setAllowsAntialiasing(true); cg.setShouldAntialias(true)
+            cg.translateBy(x: -bounds.minX, y: bounds.maxY)
+            cg.scaleBy(x: 1, y: -1)
+            cg.addPath(centreline)
+            cg.setLineWidth(width); cg.setLineCap(.round); cg.setLineJoin(.round)
+            cg.setStrokeColor(color.cgColor); cg.strokePath()
         }
-
-        for (index, point) in paths.body.enumerated() {
-            let name = "joint.\(index)"
-            let joint: SKShapeNode
-            if let existing = line.childNode(withName: name) as? SKShapeNode {
-                joint = existing
-            } else {
-                joint = SKShapeNode(circleOfRadius: width / 2); joint.name = name
-                joint.fillColor = color; joint.strokeColor = .clear; joint.lineWidth = 0
-                joint.glowWidth = 0; joint.isAntialiased = true; joint.zPosition = 1
-                line.addChild(joint)
-            }
-            joint.isHidden = false; joint.position = point
-        }
+        let texture = SKTexture(cgImage: image.cgImage!); texture.filteringMode = .linear
+        line.texture = texture; line.size = bounds.size
+        line.position = CGPoint(x: bounds.midX, y: bounds.midY)
         let dx = CGFloat(paths.direction.dx), dy = CGFloat(paths.direction.dy)
-        ink.childNode(withName: "head")?.position = CGPoint(x: paths.tip.x - dx * 5.5,
-                                                             y: paths.tip.y - dy * 5.5)
+        ink.childNode(withName: "head")?.position = CGPoint(x: paths.tip.x - dx * 3.5,
+                                                             y: paths.tip.y - dy * 3.5)
     }
     private func drawArrow(_ arrow: ArrowDefinition) {
         let node = SKNode(); node.name = "arrow.\(arrow.id)"; node.position = point(arrow.head)
@@ -341,29 +297,33 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         let paths = arrowPaths(arrow)
         let warning = arrowInk(name: "warning", paths: paths,
                                color: UIColor(red: 1, green: 0.23, blue: 0.29, alpha: 0.88),
-                               width: 7)
+                               width: 4.6)
         warning.zPosition = 1; warning.isHidden = true; node.addChild(warning)
         let glow = arrowInk(name: "hint", paths: paths,
                             color: GameStyle.uiColor(arrow.color).withAlphaComponent(0.22),
-                            width: 8)
+                            width: 5)
         glow.zPosition = 2; glow.isHidden = true; node.addChild(glow)
         // The shaft overlaps the filled head, so SpriteKit never exposes their join.
         let body = arrowInk(name: "body", paths: paths, color: GameStyle.uiColor(arrow.color),
-                            width: 3.4)
+                            width: 2.2)
         body.zPosition = 3; node.addChild(body)
-        let marker = SKShapeNode(circleOfRadius: 5); marker.name = "warningBadge"; marker.zPosition = 4
-        marker.position = CGPoint(x: -2 * CGFloat(arrow.direction.dx) + 13 * CGFloat(arrow.direction.dy),
-                                  y: -2 * CGFloat(arrow.direction.dy) - 13 * CGFloat(arrow.direction.dx)); marker.fillColor = GameStyle.sceneBackground
-        marker.strokeColor = .systemRed; marker.lineWidth = 1.5; marker.isHidden = true
-        let label = SKLabelNode(text: "!"); label.fontName = "AvenirNext-Bold"; label.fontSize = 8
+        let marker = SKShapeNode(circleOfRadius: 3); marker.name = "warningBadge"; marker.zPosition = 4
+        marker.position = CGPoint(x: -1 * CGFloat(arrow.direction.dx) + 7 * CGFloat(arrow.direction.dy),
+                                  y: -1 * CGFloat(arrow.direction.dy) - 7 * CGFloat(arrow.direction.dx)); marker.fillColor = GameStyle.sceneBackground
+        marker.strokeColor = .systemRed; marker.lineWidth = 0.9; marker.isHidden = true
+        let label = SKLabelNode(text: "!"); label.fontName = "AvenirNext-Bold"; label.fontSize = 5
         label.fontColor = .systemRed; label.zPosition = 1; label.verticalAlignmentMode = .center; label.zRotation = -node.zRotation; marker.addChild(label); node.addChild(marker)
         arrowLayer.addChild(node); arrowNodes[arrow.id] = node
     }
     func markBlocked(_ ids: Set<Int>) {
         warned = ids
         for (id, node) in arrowNodes {
-            node.childNode(withName: "warning")?.isHidden = !ids.contains(id)
-            node.childNode(withName: "warningBadge")?.isHidden = !ids.contains(id)
+            let isWarned = ids.contains(id)
+            node.childNode(withName: "warning")?.isHidden = !isWarned
+            node.childNode(withName: "warningBadge")?.isHidden = !isWarned
+            if isWarned, let arrow = level.arrows.first(where: { $0.id == id }) {
+                render(arrow, node: node, travel: travels[id] ?? 0)
+            }
         }
         updateAccessibility()
     }
@@ -380,9 +340,9 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         node.childNode(withName: "hint")?.isHidden = false
         node.run(.repeatForever(.sequence([.scale(to: 1.06, duration: 0.45), .scale(to: 1, duration: 0.45)])), withKey: "hint")
         if tutorial, let arrow = level.arrows.first(where: { $0.id == id }) {
-            let finger = SKLabelNode(text: "☝︎"); finger.fontSize = 23; finger.fontColor = GameStyle.portalWell
-            finger.position = point(arrow.head); finger.position.y -= 26
-            finger.run(.repeatForever(.sequence([.moveBy(x: 0, y: 4, duration: 0.45), .moveBy(x: 0, y: -4, duration: 0.45)])))
+            let finger = SKLabelNode(text: "☝︎"); finger.fontSize = 12; finger.fontColor = GameStyle.portalWell
+            finger.position = point(arrow.head); finger.position.y -= 13
+            finger.run(.repeatForever(.sequence([.moveBy(x: 0, y: 2, duration: 0.45), .moveBy(x: 0, y: -2, duration: 0.45)])))
             self.tutorial.addChild(finger)
         }
     }
@@ -390,29 +350,34 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         clearHint()
         guard let node = arrowNodes[arrow.id] else { completion(); return }
         exiting.insert(arrow.id); updateAccessibility()
-        let gate = gatePosition(arrow.gateKey)
         node.removeAction(forKey: "reject"); node.setScale(1)
         let direction = arrow.direction
-        let motion = motions[arrow.id]!
-        let headToGate = Double((gate.x - node.position.x) * CGFloat(direction.dx) + (gate.y - node.position.y) * CGFloat(direction.dy)) / Double(GameStyle.cellSize)
-        let contact = max(0, headToGate - 0.30)
-        let travel = contact + motion.length + 0.06
         let start = travels[arrow.id] ?? 0
-        let duration = max(GameStyle.exitDuration, min(0.65, 0.16 + (travel - start) * 0.035)) * 1.20
-        var entered = false, sustained = false
+        let paintEvents = paintEvents(for: arrow)
+        var nextPaintEvent = paintEvents.firstIndex(where: { $0.distance >= start }) ?? paintEvents.count
+        let impact = edgeImpact(for: arrow)
+        let contact = max(start, impact.travel)
+        // Painting always finishes across the board. On a future board larger than
+        // the viewport, the arrow can dissolve at the screen edge while its trail
+        // continues painting the cells that it has logically cleared.
+        let paintingEnd = (paintEvents.last?.distance ?? contact) + 0.08
+        let travel = max(contact + 0.58, paintingEnd)
+        let duration = max(GameStyle.exitDuration, min(0.90, 0.18 + (travel - start) * 0.035)) * 1.20
+        var hitEdge = false
         let slide = SKAction.customAction(withDuration: duration) { [weak self] node, elapsed in
             guard let self else { return }
             let distance = start + ArrowMotion.slideProgress(min(1, Double(elapsed) / duration)) * (travel - start)
             self.render(arrow, node: node, travel: distance)
-            if !entered && distance >= contact {
-                entered = true
-                self.gateNodes[arrow.gateKey]?.childNode(withName: "glow")?.run(.sequence([
-                    .fadeAlpha(to: 0.7, duration: 0.04), .fadeAlpha(to: 0.18, duration: 0.18)]))
-                self.shatter(at: gate, direction: direction, color: arrow.color)
+            while nextPaintEvent < paintEvents.count, distance >= paintEvents[nextPaintEvent].distance {
+                self.paint(paintEvents[nextPaintEvent].cell, color: arrow.color)
+                nextPaintEvent += 1
             }
-            if !sustained && distance >= contact + motion.length / 2 {
-                sustained = true; self.shatter(at: gate, direction: direction, color: arrow.color, count: 4)
+            if !hitEdge && distance >= contact {
+                hitEdge = true
+                self.edgeShatter(at: impact.point, direction: direction, color: arrow.color)
             }
+            let dissolve = min(1, max(0, (distance - contact) / 0.46))
+            node.alpha = CGFloat(1 - dissolve * dissolve)
         }
         node.run(.sequence([slide, .removeFromParent(), .run { [weak self] in
             guard let self else { return }
@@ -420,20 +385,164 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
             self.updateAccessibility(); completion()
         }]), withKey: "exit")
     }
-    /// Fragments live below the socket layer, emerging from its outer side.
-    private func shatter(at point: CGPoint, direction: Direction, color: ArrowColor, count: Int = GameStyle.confettiCount) {
-        for index in 0..<count {
+    private struct PaintEvent {
+        let distance: Double
+        let cell: Cell
+    }
+    private func paintEvents(for arrow: ArrowDefinition) -> [PaintEvent] {
+        var events = arrow.cells.reversed().enumerated().map {
+            PaintEvent(distance: 0.30 + Double($0.offset), cell: $0.element)
+        }
+        var cell = arrow.head.moved(arrow.direction)
+        var distance = 0.30 + Double(max(0, arrow.cells.count - 1)) + 1
+        while level.contains(cell) {
+            events.append(PaintEvent(distance: distance, cell: cell))
+            cell = cell.moved(arrow.direction); distance += 1
+        }
+        return events
+    }
+    private func edgeImpact(for arrow: ArrowDefinition) -> (travel: Double, point: CGPoint) {
+        let halfWidth = size.width * boardCamera.xScale / 2
+        let halfHeight = size.height * boardCamera.yScale / 2
+        let visible = CGRect(x: boardCamera.position.x - halfWidth,
+                             y: boardCamera.position.y - halfHeight,
+                             width: halfWidth * 2, height: halfHeight * 2)
+        // Keep the impact just inside the clipped SpriteView so the complete burst
+        // remains visible instead of being cut in half.
+        let inset = max(1.5, boardCamera.xScale * 3)
+        let origin = point(arrow.head)
+        let initialTip = CGPoint(x: origin.x + CGFloat(arrow.direction.dx) * GameStyle.cellSize * 0.30,
+                                 y: origin.y + CGFloat(arrow.direction.dy) * GameStyle.cellSize * 0.30)
+        let edge: CGFloat
+        switch arrow.direction {
+        case .right: edge = visible.maxX - inset
+        case .up: edge = visible.maxY - inset
+        case .left: edge = visible.minX + inset
+        case .down: edge = visible.minY + inset
+        }
+        let along = arrow.direction.dx == 0
+            ? (edge - initialTip.y) * CGFloat(arrow.direction.dy)
+            : (edge - initialTip.x) * CGFloat(arrow.direction.dx)
+        let travel = max(0, Double(along / GameStyle.cellSize))
+        let point = CGPoint(x: initialTip.x + CGFloat(arrow.direction.dx) * CGFloat(travel) * GameStyle.cellSize,
+                            y: initialTip.y + CGFloat(arrow.direction.dy) * CGFloat(travel) * GameStyle.cellSize)
+        return (travel, point)
+    }
+    private func paint(_ cell: Cell, color: ArrowColor) {
+        guard level.contains(cell), let dot = guideDots[cell] else { return }
+        paintSequence += 1
+        let targetColor = GameStyle.uiColor(color)
+        let startColor = dot.fillColor
+
+        // Animate the original guide circle itself. Keeping one vector node for
+        // the entire lifetime avoids the uneven edge produced by a tiny overlay
+        // texture when the camera sits between pixel boundaries.
+        dot.removeAllActions()
+        dot.alpha = 1
+        dot.setScale(1)
+        paintedCells[cell] = PaintedMark(dot: dot, color: targetColor, order: paintSequence)
+
+        let colorTransition = SKAction.customAction(withDuration: 0.14) { node, elapsed in
+            guard let shape = node as? SKShapeNode else { return }
+            let progress = min(1, CGFloat(elapsed / 0.14))
+            shape.fillColor = Self.interpolate(startColor, targetColor, progress: progress)
+        }
+
+        let firstPulse = SKAction.scale(to: 2.15, duration: 0.10); firstPulse.timingMode = .easeOut
+        let firstSettle = SKAction.scale(to: 1, duration: 0.17); firstSettle.timingMode = .easeInEaseOut
+        let secondPulse = SKAction.scale(to: 1.32, duration: 0.08); secondPulse.timingMode = .easeOut
+        let secondSettle = SKAction.scale(to: 1, duration: 0.14); secondSettle.timingMode = .easeInEaseOut
+        dot.run(.group([
+            colorTransition,
+            .sequence([firstPulse, firstSettle, secondPulse, secondSettle])
+        ]), withKey: "paintPulse")
+        updateAccessibility()
+    }
+    private static func interpolate(_ from: UIColor, _ to: UIColor, progress: CGFloat) -> UIColor {
+        var fr: CGFloat = 0, fg: CGFloat = 0, fb: CGFloat = 0, fa: CGFloat = 0
+        var tr: CGFloat = 0, tg: CGFloat = 0, tb: CGFloat = 0, ta: CGFloat = 0
+        from.getRed(&fr, green: &fg, blue: &fb, alpha: &fa)
+        to.getRed(&tr, green: &tg, blue: &tb, alpha: &ta)
+        return UIColor(red: fr + (tr - fr) * progress,
+                       green: fg + (tg - fg) * progress,
+                       blue: fb + (tb - fb) * progress,
+                       alpha: fa + (ta - fa) * progress)
+    }
+    func revealPainting(completion: @escaping () -> Void) {
+        inputEnabled = false; interruptIntroduction(); boardCamera.removeAllActions()
+        let centre = CGPoint(x: boardWidth / 2, y: boardHeight / 2)
+        let zoomDuration: TimeInterval = 0.46
+        let fillStart = zoomDuration + 0.10
+        var finalDelay: TimeInterval = 0
+
+        tutorial.run(.fadeOut(withDuration: 0.20))
+        for (cell, dot) in guideDots where paintedCells[cell] == nil {
+            dot.run(.sequence([.wait(forDuration: fillStart), .fadeOut(withDuration: 0.22)]))
+        }
+
+        for (cell, mark) in paintedCells {
+            let distance = hypot(CGFloat(cell.x) - CGFloat(level.size - 1) / 2,
+                                 CGFloat(cell.y) - CGFloat(level.height - 1) / 2)
+            let waveDelay = min(0.28, Double(distance) * 0.035)
+            let delay = fillStart + waveDelay
+            finalDelay = max(finalDelay, delay)
+
+            mark.dot.removeAllActions()
+            let dotLift = SKAction.scale(to: 1.55, duration: 0.09); dotLift.timingMode = .easeOut
+            mark.dot.run(.sequence([.wait(forDuration: delay), dotLift,
+                                    .fadeOut(withDuration: 0.18), .removeFromParent()]))
+
+            let tile = SKSpriteNode(color: mark.color,
+                                    size: CGSize(width: GameStyle.cellSize + 0.15,
+                                                 height: GameStyle.cellSize + 0.15))
+            tile.position = point(cell); tile.zPosition = CGFloat(mark.order) * 0.001
+            tile.alpha = 0; tile.setScale(1.2 / GameStyle.cellSize)
+            paintLayer.addChild(tile)
+            let startScale = 1.2 / GameStyle.cellSize
+            let transform = SKAction.customAction(withDuration: 0.30) { node, elapsed in
+                let t = min(1, CGFloat(elapsed / 0.30))
+                let shifted = t - 1
+                let progress = 1 + 2.10 * shifted * shifted * shifted + 1.10 * shifted * shifted
+                node.setScale(startScale + (1 - startScale) * progress)
+                node.alpha = min(1, t * 4)
+            }
+            tile.run(.sequence([.wait(forDuration: delay), transform,
+                                .scale(to: 1, duration: 0.08)]), withKey: "finalFill")
+        }
+        let zoomOut = SKAction.group([
+            .scale(to: fitScale, duration: zoomDuration),
+            .move(to: centre, duration: zoomDuration)
+        ])
+        zoomOut.timingMode = .easeInEaseOut
+        let revealEnd = finalDelay + 0.38
+        boardCamera.run(.sequence([zoomOut,
+                                   .wait(forDuration: max(0, revealEnd - zoomDuration) + 0.80),
+                                   .run(completion)]),
+                        withKey: "paintingReveal")
+    }
+    /// The particles bounce back into the visible area, like a small collision with
+    /// the edge of the screen. Sending them outward would immediately clip the burst.
+    private func edgeShatter(at point: CGPoint, direction: Direction, color: ArrowColor) {
+        let color = GameStyle.uiColor(color)
+        let flash = SKShapeNode(rectOf: CGSize(width: 1.2, height: 11), cornerRadius: 0.6)
+        flash.position = point; flash.fillColor = color; flash.strokeColor = .clear
+        flash.zRotation = direction.dx == 0 ? .pi / 2 : 0
+        flash.setScale(0.3); fragmentLayer.addChild(flash)
+        flash.run(.sequence([.group([.scale(to: 1.35, duration: 0.11), .fadeOut(withDuration: 0.18)]),
+                             .removeFromParent()]))
+        for index in 0..<GameStyle.confettiCount {
             let path = CGMutablePath()
             if index.isMultiple(of: 2) {
-                path.move(to: CGPoint(x: -2, y: -2)); path.addLine(to: CGPoint(x: 3, y: -1)); path.addLine(to: CGPoint(x: 0, y: 4)); path.closeSubpath()
-            } else { path.addRoundedRect(in: CGRect(x: -1.5, y: -3, width: 3, height: 6), cornerWidth: 0.6, cornerHeight: 0.6) }
-            let shard = SKShapeNode(path: path); shard.fillColor = GameStyle.uiColor(color); shard.strokeColor = .clear
-            let start = CGFloat.random(in: 17...20)
-            shard.position = CGPoint(x: point.x + CGFloat(direction.dx) * start, y: point.y + CGFloat(direction.dy) * start)
+                path.move(to: CGPoint(x: -1, y: -1)); path.addLine(to: CGPoint(x: 1.5, y: -0.5)); path.addLine(to: CGPoint(x: 0, y: 2)); path.closeSubpath()
+            } else { path.addRoundedRect(in: CGRect(x: -0.75, y: -1.5, width: 1.5, height: 3), cornerWidth: 0.3, cornerHeight: 0.3) }
+            let shard = SKShapeNode(path: path); shard.fillColor = color; shard.strokeColor = .clear
+            let start = CGFloat.random(in: 0.5...2)
+            shard.position = CGPoint(x: point.x - CGFloat(direction.dx) * start,
+                                     y: point.y - CGFloat(direction.dy) * start)
             fragmentLayer.addChild(shard)
-            let forward = CGFloat.random(in: 10...20), side = CGFloat.random(in: -18...18)
-            let drift = SKAction.moveBy(x: CGFloat(direction.dx) * forward - CGFloat(direction.dy) * side,
-                                       y: CGFloat(direction.dy) * forward + CGFloat(direction.dx) * side,
+            let inward = CGFloat.random(in: 5...13), side = CGFloat.random(in: -10...10)
+            let drift = SKAction.moveBy(x: -CGFloat(direction.dx) * inward - CGFloat(direction.dy) * side,
+                                       y: -CGFloat(direction.dy) * inward + CGFloat(direction.dx) * side,
                                        duration: GameStyle.confettiDuration)
             drift.timingMode = .easeOut
             shard.run(.sequence([.group([drift, .rotate(byAngle: CGFloat.random(in: -4...4), duration: GameStyle.confettiDuration),
@@ -447,8 +556,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         node.setScale(1)
         render(arrow, node: node, travel: 0)
         let block = PuzzleRules.blockingCell(arrow, remaining: remaining, level: level)
-        let gate = gatePosition(arrow.gateKey)
-        var target = block.map(point) ?? gate
+        var target = block.map(point) ?? edgeImpact(for: arrow).point
         var steps = Double((target.x - node.position.x) * CGFloat(arrow.direction.dx) +
                            (target.y - node.position.y) * CGFloat(arrow.direction.dy)) / Double(GameStyle.cellSize)
         if let block, let obstacle = remaining.first(where: { $0.id != arrow.id && $0.cells.contains(block) }),
@@ -472,7 +580,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         let impact = SKAction.run { [weak self] in
             guard let self else { return }
             onImpact()
-            let flash = SKShapeNode(circleOfRadius: 5); flash.position = target
+            let flash = SKShapeNode(circleOfRadius: 2.5); flash.position = target
             flash.fillColor = UIColor(red: 1, green: 0.25, blue: 0.30, alpha: 0.7); flash.strokeColor = .clear
             self.fragmentLayer.addChild(flash)
             flash.run(.sequence([.group([.scale(to: 1.5, duration: 0.10), .fadeOut(withDuration: 0.10)]), .removeFromParent()]))

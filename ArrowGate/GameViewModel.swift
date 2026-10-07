@@ -26,7 +26,6 @@ final class GameViewModel: ObservableObject {
     private var timer: AnyCancellable?
     private var lastTick = Date()
     private var generation = 0
-    var successfulMoves: Int { level.arrows.count - remaining.count }
     var canRequestHint: Bool { phase == .playing && (hintLimit.map { hintsUsed < $0 } ?? true) }
     var hasTimeLimit: Bool { timeLimit > 0 }
     var secondsRemaining: TimeInterval { max(0, timeLimit - elapsed) }
@@ -49,7 +48,7 @@ final class GameViewModel: ObservableObject {
     func tap(_ id: Int) {
         guard phase == .playing, hearts > 0, let arrow = remaining.first(where: { $0.id == id }) else { return }
         feedback.selected()
-        let result = PuzzleRules.evaluate(arrow, remaining: remaining, level: level, successfulMoves: successfulMoves)
+        let result = PuzzleRules.evaluate(arrow, remaining: remaining, level: level)
         let token = generation
         if result == .allowed {
             // Commit immediately so the next tap can use the newly freed path.
@@ -60,11 +59,14 @@ final class GameViewModel: ObservableObject {
                 self.exiting.remove(id)
                 guard self.phase != .lost else { return }
                 if self.remaining.isEmpty && self.exiting.isEmpty {
-                    self.phase = .won
-                    self.store.complete(self.level.id, time: self.elapsed)
+                    let finishTime = self.elapsed
+                    self.scene.revealPainting { [weak self] in
+                        guard let self, self.generation == token, self.phase == .playing else { return }
+                        self.phase = .won
+                        self.store.complete(self.level.id, time: finishTime)
+                    }
                 }
             }
-            scene.updateGates(successfulMoves: successfulMoves)
             refreshWarnings()
             feedback.feedback(success: true)
             tutorialHint()
@@ -83,16 +85,16 @@ final class GameViewModel: ObservableObject {
     }
     private func refreshWarnings() {
         let blocked = Set(remaining.filter {
-            tracker.penalized.contains($0.id) && PuzzleRules.evaluate($0, remaining: remaining, level: level, successfulMoves: successfulMoves) != .allowed
+            tracker.penalized.contains($0.id) && PuzzleRules.evaluate($0, remaining: remaining, level: level) != .allowed
         }.map(\.id))
         scene.markBlocked(blocked)
     }
     func hint() {
-        guard canRequestHint, let arrow = PuzzleRules.hint(remaining: remaining, level: level, successfulMoves: successfulMoves) else { return }
+        guard canRequestHint, let arrow = PuzzleRules.hint(remaining: remaining, level: level) else { return }
         hintsUsed += 1; scene.highlight(arrow.id, tutorial: level.id == 1)
     }
     private func tutorialHint() {
-        if level.id == 1, let arrow = PuzzleRules.hint(remaining: remaining, level: level, successfulMoves: successfulMoves) { scene.highlight(arrow.id, tutorial: true) }
+        if level.id == 1, let arrow = PuzzleRules.hint(remaining: remaining, level: level) { scene.highlight(arrow.id, tutorial: true) }
     }
     func pause() { if phase == .playing { phase = .paused } }
     func resume() { guard phase == .paused else { return }; lastTick = Date(); phase = .playing }

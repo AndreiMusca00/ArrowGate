@@ -48,7 +48,7 @@ struct GameScreen: View {
                 if model.phase == .paused, let difficulty = model.level.difficulty {
                     Text("Level \(String(model.level.id)) · \(difficulty.title)").foregroundColor(GameStyle.muted)
                 }
-                Text(model.phase == .won ? (model.level.id == LevelRepository.count ? "All gates cleared!" : "Beautiful escape!") : model.phase == .lost ? (model.lossReason == .timeout ? "Time is up" : "Try a new path") : "Take a breath")
+                Text(model.phase == .won ? (model.level.id == LevelRepository.count ? "Gallery complete!" : "Picture complete!") : model.phase == .lost ? (model.lossReason == .timeout ? "Time is up" : "Try a new path") : "Take a breath")
                     .font(.system(size: 28, weight: .bold, design: .rounded)).multilineTextAlignment(.center)
                 if model.phase == .won {
                     Text("\(model.formattedElapsed)  ·  \(model.mistakes) mistakes").foregroundColor(GameStyle.muted)

@@ -23,9 +23,11 @@ final class ArrowGateUITests: XCTestCase {
     var lives: String { app.descendants(matching: .any)["lives"].value as? String ?? "" }
     func tapArrow(_ arrow: Arrow, level: Fixture, wait: Bool = true) {
         let frame = board.frame
-        let scale = max(Double(level.size * 44 + 88) / (frame.width - 24), Double(level.height * 44 + 88) / (frame.height - 24))
-        let x = 0.5 + ((Double(arrow.head.x) + 0.5) * 44 - Double(level.size) * 22) / (frame.width * scale)
-        let y = 0.5 - ((Double(arrow.head.y) + 0.5) * 44 - Double(level.height) * 22) / (frame.height * scale)
+        let cellSize = 15.0, worldMargin = 44.0
+        let scale = max((Double(level.size) * cellSize + worldMargin * 2) / (frame.width - 24),
+                        (Double(level.height) * cellSize + worldMargin * 2) / (frame.height - 24))
+        let x = 0.5 + ((Double(arrow.head.x) + 0.5) * cellSize - Double(level.size) * cellSize / 2) / (frame.width * scale)
+        let y = 0.5 - ((Double(arrow.head.y) + 0.5) * cellSize - Double(level.height) * cellSize / 2) / (frame.height * scale)
         board.coordinate(withNormalizedOffset: CGVector(dx: x, dy: y)).tap()
         if wait { Thread.sleep(forTimeInterval: 0.4) }
     }
@@ -58,13 +60,31 @@ final class ArrowGateUITests: XCTestCase {
                 if level.number == 1 { capture("victory") }
                 app.buttons["nextLevel"].tap()
             } else {
-                XCTAssertTrue(app.staticTexts["All gates cleared!"].waitForExistence(timeout: 5)); capture("campaign-complete")
+                XCTAssertTrue(app.staticTexts["Gallery complete!"].waitForExistence(timeout: 5)); capture("campaign-complete")
                 app.buttons["Main menu"].tap()
                 XCTAssertTrue(app.staticTexts["LEVEL 20 UNLOCKED"].waitForExistence(timeout: 5))
             }
         }
         app.terminate(); app.launchArguments = ["-ui-testing"]; app.launch()
         XCTAssertTrue(app.staticTexts["LEVEL 20 UNLOCKED"].waitForExistence(timeout: 5))
+    }
+    func testFirstThreeLevelsRevealPaintings() throws {
+        let levels = Array(try fixtures().prefix(3))
+        let expectedPaintedCells = [36, 18, 66]
+        let names = ["painted-tricolour", "painted-flower", "painted-sunset"]
+        for (index, level) in levels.enumerated() {
+            app.launchArguments += ["-level", String(level.number)]
+            app.launch(); XCTAssertTrue(board.waitForExistence(timeout: 10))
+            for id in level.solution {
+                tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level)
+            }
+            Thread.sleep(forTimeInterval: 0.85)
+            XCTAssertTrue(summary.contains("painted \(expectedPaintedCells[index])"), summary)
+            capture(names[index])
+            XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 4))
+            app.terminate()
+            app.launchArguments = ["-ui-testing", "-reset-test-progress", "-skip-board-intro"]
+        }
     }
     func testRapidDependentTapsAndRestartDuringExit() throws {
         let level = try XCTUnwrap(fixtures().first)
@@ -87,20 +107,22 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS '0 mistakes'")).firstMatch.exists)
     }
     func testRepeatedBlockedTapAndWarningRecovery() throws {
-        let level = try XCTUnwrap(fixtures().first)
-        app.launchArguments += ["-level", "1"]; app.launch()
+        let level = try XCTUnwrap(fixtures().dropFirst(2).first)
+        app.launchArguments += ["-level", "3"]; app.launch()
         XCTAssertTrue(board.waitForExistence(timeout: 10))
-        let blocked = try XCTUnwrap(level.arrows.first { $0.id == 1 })
+        let blocked = try XCTUnwrap(level.arrows.first { $0.id == 8 })
         tapArrow(blocked, level: level)
         XCTAssertEqual(lives, "2"); XCTAssertTrue(summary.contains("warnings 1")); capture("blocked-warning")
         for _ in 0..<3 { tapArrow(blocked, level: level) }
         XCTAssertEqual(lives, "2"); XCTAssertTrue(summary.contains("warnings 1"))
         hint(); XCTAssertTrue(summary.contains("warnings 1"))
-        tapArrow(try XCTUnwrap(level.arrows.first { $0.id == 0 }), level: level, wait: false)
-        Thread.sleep(forTimeInterval: 0.37); capture("portal-confetti")
+        for id in 0..<6 {
+            tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level, wait: false)
+        }
+        Thread.sleep(forTimeInterval: 0.37); capture("edge-confetti")
         Thread.sleep(forTimeInterval: 0.2)
         XCTAssertTrue(summary.contains("warnings 0")); XCTAssertEqual(lives, "2"); capture("warning-cleared")
-        tapArrow(blocked, level: level); XCTAssertEqual(lives, "2"); XCTAssertTrue(summary.contains("arrows 1"))
+        tapArrow(blocked, level: level); XCTAssertEqual(lives, "2"); XCTAssertTrue(summary.contains("arrows 2"))
         app.buttons["restart"].tap(); XCTAssertEqual(lives, "3")
         tapArrow(blocked, level: level); XCTAssertEqual(lives, "2")
     }
@@ -116,7 +138,7 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertTrue(summary.contains("zoom 1.0"))
         capture("clean-full-board")
         board.pinch(withScale: 8, velocity: 2)
-        XCTAssertTrue(summary.contains("zoom 3.0"))
+        XCTAssertTrue(summary.contains("zoom 1.6"))
         board.swipeLeft(); board.swipeUp(); board.swipeRight(); board.swipeDown()
         XCTAssertEqual(lives, "3")
         XCTAssertTrue(summary.contains("arrows 18"))

@@ -1,16 +1,14 @@
 import Foundation
 
-enum MoveResult: Equatable { case allowed, blocked, wrongGate, frozenGate }
+enum MoveResult: Equatable { case allowed, blocked }
 enum PuzzleRules {
-    static func evaluate(_ arrow: ArrowDefinition, remaining: [ArrowDefinition], level: LevelDefinition, successfulMoves: Int = 0) -> MoveResult {
+    static func evaluate(_ arrow: ArrowDefinition, remaining: [ArrowDefinition], level: LevelDefinition) -> MoveResult {
         let occupied = Set(remaining.filter { $0.id != arrow.id }.flatMap(\.cells) + Array(arrow.cells.dropFirst()))
         var cell = arrow.head.moved(arrow.direction)
         while level.contains(cell) {
             if occupied.contains(cell) { return .blocked }
             cell = cell.moved(arrow.direction)
         }
-        guard let gate = level.gates.first(where: { $0.key == arrow.gateKey && $0.color == arrow.color }) else { return .wrongGate }
-        if gate.thawAfterMoves > successfulMoves { return .frozenGate }
         return .allowed
     }
     /// First contact along the head's lane, including an arrow's own bent body.
@@ -23,16 +21,14 @@ enum PuzzleRules {
         }
         return nil
     }
-    static func hint(remaining: [ArrowDefinition], level: LevelDefinition, successfulMoves: Int = 0) -> ArrowDefinition? {
-        remaining.first { evaluate($0, remaining: remaining, level: level, successfulMoves: successfulMoves) == .allowed }
+    static func hint(remaining: [ArrowDefinition], level: LevelDefinition) -> ArrowDefinition? {
+        remaining.first { evaluate($0, remaining: remaining, level: level) == .allowed }
     }
 }
 enum LevelValidator {
     static func solution(for level: LevelDefinition) -> [Int]? {
         guard level.size > 0, level.height > 0, level.timeLimit.isFinite, (level.timeLimit > 0 || (level.id == 1 && level.difficulty == .tutorial && level.timeLimit == 0)), !level.arrows.isEmpty,
               Set(level.arrows.map(\.id)).count == level.arrows.count,
-              Set(level.gates.map(\.key)).count == level.gates.count,
-              level.gates.allSatisfy({ $0.thawAfterMoves >= 0 && (0..<($0.key.side.dx == 0 ? level.size : level.height)).contains($0.key.lane) }),
               level.arrows.allSatisfy({ arrow in
                   let cells = arrow.cells
                   return arrow.length > 0 && cells.count == arrow.length && cells.first == arrow.head &&
@@ -45,7 +41,7 @@ enum LevelValidator {
         var result: [Int] = []
         // Removing an arrow can only free space: every legal choice preserves solvability.
         while !remaining.isEmpty {
-            guard let next = PuzzleRules.hint(remaining: remaining, level: level, successfulMoves: result.count) else { return nil }
+            guard let next = PuzzleRules.hint(remaining: remaining, level: level) else { return nil }
             result.append(next.id)
             remaining.removeAll { $0.id == next.id }
         }

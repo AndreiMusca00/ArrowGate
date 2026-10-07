@@ -24,16 +24,15 @@ final class PuzzleRulesTests: XCTestCase {
             let solution = try XCTUnwrap(LevelValidator.solution(for: level))
             XCTAssertEqual(solution.count, level.arrows.count)
             var remaining = level.arrows
-            for (moveCount, id) in solution.enumerated() {
+            for id in solution {
                 let arrow = try XCTUnwrap(remaining.first { $0.id == id })
-                XCTAssertEqual(PuzzleRules.evaluate(arrow, remaining: remaining, level: level, successfulMoves: moveCount), .allowed)
+                XCTAssertEqual(PuzzleRules.evaluate(arrow, remaining: remaining, level: level), .allowed)
                 remaining.removeAll { $0.id == id }
             }
             XCTAssertTrue(remaining.isEmpty)
             for first in level.arrows where PuzzleRules.evaluate(first, remaining: level.arrows, level: level) == .allowed {
                 var alternate = level.arrows.filter { $0.id != first.id }
-                var moves = 1
-                while let arrow = PuzzleRules.hint(remaining: alternate, level: level, successfulMoves: moves) { alternate.removeAll { $0.id == arrow.id }; moves += 1 }
+                while let arrow = PuzzleRules.hint(remaining: alternate, level: level) { alternate.removeAll { $0.id == arrow.id } }
                 XCTAssertTrue(alternate.isEmpty, "Legal choice must not create a dead end")
             }
         }
@@ -42,9 +41,15 @@ final class PuzzleRulesTests: XCTestCase {
         for level in LevelRepository.levels {
             XCTAssertTrue(level.gates.allSatisfy { $0.thawAfterMoves == 0 })
             XCTAssertTrue(level.arrows.allSatisfy { arrow in
-                guard let body = arrow.body, body.count >= 3 else { return false }
-                return zip(body, body.dropFirst()).contains { a, b in arrow.direction.dx == 0 ? a.x != b.x : a.y != b.y }
+                guard let body = arrow.body else { return false }
+                return body.count >= (level.id <= 3 ? 2 : 3)
             })
+            if level.id > 3 {
+                XCTAssertTrue(level.arrows.allSatisfy { arrow in
+                    guard let body = arrow.body else { return false }
+                    return zip(body, body.dropFirst()).contains { a, b in arrow.direction.dx == 0 ? a.x != b.x : a.y != b.y }
+                })
+            }
             XCTAssertNotNil(LevelValidator.solution(for: level))
             if level.id == 1 { XCTAssertEqual(level.timeLimit, 0) }
             else { XCTAssertTrue((25...80).contains(level.timeLimit)) }
@@ -64,23 +69,26 @@ final class PuzzleRulesTests: XCTestCase {
             XCTAssertEqual(PuzzleRules.evaluate(arrow, remaining: [arrow], level: level), .allowed)
         }
     }
-    func testWrongAndMissingGatesAndOverlaps() {
+    func testPortalMetadataDoesNotRestrictMovementAndOverlapsRemainInvalid() {
         let arrow = ArrowDefinition(id: 0, head: Cell(x: 2, y: 1), direction: .right, color: .red, length: 2)
         for gates in [[], [GateDefinition(key: arrow.gateKey, color: .green)]] {
             let level = LevelDefinition(id: 1, size: 4, arrows: [arrow], gates: gates)
-            XCTAssertEqual(PuzzleRules.evaluate(arrow, remaining: [arrow], level: level), .wrongGate)
-            XCTAssertNil(LevelValidator.solution(for: level))
+            XCTAssertEqual(PuzzleRules.evaluate(arrow, remaining: [arrow], level: level), .allowed)
+            XCTAssertNotNil(LevelValidator.solution(for: level))
         }
         let overlap = ArrowDefinition(id: 1, head: arrow.head, direction: .up, color: .red, length: 1)
         XCTAssertNil(LevelValidator.solution(for: LevelDefinition(id: 1, size: 4, arrows: [arrow, overlap], gates: [GateDefinition(key: arrow.gateKey, color: .red)])))
     }
-    func testHintIsLegalAndTutorialStartsWithBlockedArrow() throws {
+    func testHintIsLegalAndTutorialStartsWithThreePaintableStripes() throws {
         for level in LevelRepository.levels {
             let hint = try XCTUnwrap(PuzzleRules.hint(remaining: level.arrows, level: level))
             XCTAssertEqual(PuzzleRules.evaluate(hint, remaining: level.arrows, level: level), .allowed)
         }
         let level = LevelRepository.level(1)
-        XCTAssertEqual(PuzzleRules.evaluate(level.arrows[1], remaining: level.arrows, level: level), .blocked)
+        XCTAssertEqual(level.arrows.count, 3)
+        XCTAssertTrue(level.arrows.allSatisfy {
+            PuzzleRules.evaluate($0, remaining: level.arrows, level: level) == .allowed
+        })
     }
     func testDuplicateMistakesCostOneLifePerArrowAndReset() {
         var tracker = MistakeTracker()
@@ -92,13 +100,12 @@ final class PuzzleRulesTests: XCTestCase {
         tracker.reset()
         XCTAssertTrue(tracker.register(arrowID: 10))
     }
-    func testFrozenPortalCountsOnlySuccessfulMoves() {
+    func testLegacyPortalMetadataIsIgnored() {
         let arrow = ArrowDefinition(id: 0, head: Cell(x: 3, y: 1), direction: .right, color: .blue, length: 1)
         let level = LevelDefinition(id: 1, size: 4, height: 6, arrows: [arrow], gates: [GateDefinition(key: arrow.gateKey, color: .blue, thawAfterMoves: 3)])
-        for moves in 0..<3 { XCTAssertEqual(PuzzleRules.evaluate(arrow, remaining: [arrow], level: level, successfulMoves: moves), .frozenGate) }
-        XCTAssertNil(PuzzleRules.hint(remaining: [arrow], level: level, successfulMoves: 2))
-        XCTAssertEqual(PuzzleRules.evaluate(arrow, remaining: [arrow], level: level, successfulMoves: 3), .allowed)
-        XCTAssertNil(LevelValidator.solution(for: level))
+        XCTAssertEqual(PuzzleRules.evaluate(arrow, remaining: [arrow], level: level), .allowed)
+        XCTAssertEqual(PuzzleRules.hint(remaining: [arrow], level: level)?.id, arrow.id)
+        XCTAssertNotNil(LevelValidator.solution(for: level))
         XCTAssertTrue(level.contains(Cell(x: 2, y: 5)))
         XCTAssertFalse(level.contains(Cell(x: 4, y: 5)))
         for level in LevelRepository.levels {

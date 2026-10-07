@@ -13,9 +13,11 @@ enum GameStyle {
     }
     static let rejectDuration = 0.18
     static let selectionScale: CGFloat = 1.04
-    static let cellSize: CGFloat = 44
+    // The level coordinate system uses the visible guide-dot spacing directly.
+    // Keeping this compact lets authored levels place arrows on adjacent dots.
+    static let cellSize: CGFloat = 15
     static let worldMargin: CGFloat = 44
-    static let maximumZoom: CGFloat = 3
+    static let maximumZoom: CGFloat = 1.6
     static let confettiCount = 10
     static let confettiDuration = 0.26
     static let sceneSize = CGSize(width: 390, height: 700)

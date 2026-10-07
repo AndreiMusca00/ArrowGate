@@ -79,6 +79,6 @@ struct ArrowMotion {
         }
         return hits.min()
     }
-    /// Ease in gently and retain momentum through the portal (no stop at its mouth).
+    /// Ease in gently and retain momentum all the way to the visible edge.
     static func slideProgress(_ t: Double) -> Double { t * t * (2 - t) }
 }
