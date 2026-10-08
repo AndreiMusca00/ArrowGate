@@ -33,6 +33,15 @@ struct GameScreen: View {
                 .clipped().accessibilityIdentifier("board")
         }
         .accessibilityElement(children: .contain)
+        .overlay(alignment: .topTrailing) {
+            if model.phase == .playing && model.hintOfferVisible {
+                HintOfferView(model: model)
+                    .padding(.top, 78)
+                    .padding(.trailing, 12)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: 0.32), value: model.hintOfferVisible)
         .overlay {
             Group { if model.phase != .playing { overlay } }
                 .allowsHitTesting(model.phase != .playing)
@@ -59,7 +68,10 @@ struct GameScreen: View {
                 if model.phase == .won {
                     Text("\(model.formattedElapsed)  ·  \(model.mistakes) mistakes").foregroundColor(GameStyle.muted)
                     if model.level.id < LevelRepository.count {
-                        ActionButton(title: "Continue journey", icon: "map", primary: true) { state.showJourney() }.accessibilityIdentifier("nextLevel")
+                        ActionButton(title: "Next level", icon: "arrow.right", primary: true) {
+                            state.play(model.level.id + 1)
+                        }
+                        .accessibilityIdentifier("nextLevel")
                     } else {
                         if model.level.id == LevelRepository.count { Text("20 / 20 puzzles complete").foregroundColor(GameStyle.muted) }
                         ActionButton(title: "Open gallery", icon: "square.grid.2x2", primary: true) { state.showGallery() }
@@ -67,7 +79,11 @@ struct GameScreen: View {
                     ActionButton(title: "Play again", icon: "arrow.counterclockwise") { model.restart() }
                 } else if model.phase == .paused {
                     ActionButton(title: "Continue", icon: "play.fill", primary: true) { model.resume() }
-                    ActionButton(title: "Hint", icon: "lightbulb") { model.resume(); model.hint() }.accessibilityIdentifier("hint")
+                    ActionButton(
+                        title: model.hintBalance > 0 ? "Hint · \(model.hintBalance)" : "Watch for hint",
+                        icon: model.hintBalance > 0 ? "lightbulb" : "play.rectangle.fill"
+                    ) { model.resume(); model.hint() }
+                    .accessibilityIdentifier("hint")
                     ActionButton(title: "Restart", icon: "arrow.counterclockwise") { model.restart() }.accessibilityIdentifier("pauseRestart")
                 } else {
                     Text(model.lossReason == .timeout ? "A fresh start. A clearer path." : "Three hearts. A fresh start.").foregroundColor(GameStyle.muted)
@@ -78,6 +94,64 @@ struct GameScreen: View {
                 }
             }.foregroundColor(GameStyle.ink).padding(26).background(GameStyle.panel, in: RoundedRectangle(cornerRadius: 28)).padding(24)
         }
+    }
+}
+
+private struct HintOfferView: View {
+    @ObservedObject var model: GameViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                ZStack {
+                    Circle().fill(GameStyle.color(.yellow).opacity(0.14))
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(GameStyle.color(.yellow))
+                }
+                .frame(width: 34, height: 34)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Need a hint?")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .accessibilityIdentifier("hintOffer")
+                    Text(model.hintBalance > 0 ? "\(model.hintBalance) available" : "Reveal one with a video")
+                        .font(.system(size: 10, design: .rounded))
+                        .foregroundColor(GameStyle.muted)
+                }
+
+                Spacer(minLength: 4)
+                Button(action: model.dismissHintOffer) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(GameStyle.muted)
+                .accessibilityLabel("Dismiss hint")
+            }
+
+            Button(action: model.hint) {
+                HStack(spacing: 7) {
+                    Image(systemName: model.hintBalance > 0 ? "lightbulb.fill" : "play.rectangle.fill")
+                    Text(model.hintBalance > 0 ? "USE HINT · \(model.hintBalance)" : "WATCH FOR HINT")
+                }
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+                .background(GameStyle.accent, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(model.hintBalance > 0 ? "Use hint, \(model.hintBalance) available" : "Watch video for hint")
+            .accessibilityIdentifier("idleHint")
+        }
+        .foregroundColor(GameStyle.ink)
+        .padding(12)
+        .frame(width: 214)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.8), lineWidth: 1))
+        .shadow(color: GameStyle.ink.opacity(0.12), radius: 16, y: 7)
     }
 }
 

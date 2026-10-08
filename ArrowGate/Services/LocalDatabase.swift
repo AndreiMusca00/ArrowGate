@@ -105,12 +105,17 @@ final class LocalDatabase {
     }
     func initializeProgress(defaults: UserDefaults) throws {
         try transaction {
-            guard try metadata("unlocked") == nil else { return }
-            try setMetadata("unlocked", String(min(LevelRepository.count, max(1, defaults.integer(forKey: "unlockedLevel")))))
-            for id in 1...LevelRepository.count where defaults.double(forKey: "bestTime.\(id)") > 0 {
-                try setMetadata("bestTime.\(id)", String(defaults.double(forKey: "bestTime.\(id)")))
+            if try metadata("unlocked") == nil {
+                try setMetadata("unlocked", String(min(LevelRepository.count, max(1, defaults.integer(forKey: "unlockedLevel")))))
+                for id in 1...LevelRepository.count where defaults.double(forKey: "bestTime.\(id)") > 0 {
+                    try setMetadata("bestTime.\(id)", String(defaults.double(forKey: "bestTime.\(id)")))
+                }
+                if defaults.bool(forKey: "campaignCompleted") { try setMetadata("campaignCompleted", "1") }
             }
-            if defaults.bool(forKey: "campaignCompleted") { try setMetadata("campaignCompleted", "1") }
+            if try metadata("hints") == nil {
+                let stored = defaults.object(forKey: "hintCount") == nil ? 3 : defaults.integer(forKey: "hintCount")
+                try setMetadata("hints", String(max(0, stored)))
+            }
         }
     }
     func saveLevels(_ levels: [LevelDefinition]) throws {
@@ -145,6 +150,9 @@ final class LocalDatabase {
             if time < best { try setMetadata(key, String(time)) }
             if level == LevelRepository.count { try setMetadata("campaignCompleted", "1") }
         }
+    }
+    func setHintCount(_ count: Int) throws {
+        try transaction { try setMetadata("hints", String(max(0, count))) }
     }
     func resetProgress() throws {
         try transaction {

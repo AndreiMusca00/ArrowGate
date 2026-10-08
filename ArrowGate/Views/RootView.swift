@@ -65,12 +65,9 @@ struct MenuView: View {
             Text("Clear a path. Match the color.").font(.system(size: 15, design: .rounded))
                 .foregroundColor(GameStyle.muted).padding(.top, 8)
             Spacer(minLength: 16)
-            VStack(spacing: 14) {
-                HStack { Circle().fill(GameStyle.accent).frame(width: 6, height: 6)
-                    Text("LEVEL \(store.unlocked) UNLOCKED").font(.system(size: 12, weight: .bold)).tracking(1.5) }.foregroundColor(GameStyle.muted)
-                ActionButton(title: "PLAY", icon: "play.fill", primary: true) { state.play() }
-                    .accessibilityIdentifier("play")
-            }
+            ActionButton(title: "Level \(store.unlocked)", icon: "play.fill", primary: true) { state.play() }
+                .accessibilityLabel("Level \(store.unlocked)")
+                .accessibilityIdentifier("play")
             Spacer(minLength: 20)
         }.foregroundColor(GameStyle.ink).padding(.horizontal, 28).padding(.vertical, 16)
             .sheet(isPresented: $settings) { SettingsView(store: store) }

@@ -1,8 +1,13 @@
 import Foundation
 
 enum LevelDifficulty: String, Codable {
-    case tutorial, easy, normal, hard, superHard
-    var title: String { self == .superHard ? "Super Hard" : rawValue.capitalized }
+    case tutorial, easy, normal, hard, veryHard, nightmare
+    var title: String {
+        switch self {
+        case .veryHard: return "Very Hard"
+        default: return rawValue.capitalized
+        }
+    }
 }
 enum ArrowColor: String, CaseIterable, Codable { case yellow, blue, green, red, brown, cyan }
 enum Direction: Int, CaseIterable, Codable {

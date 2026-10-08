@@ -56,8 +56,9 @@ final class PuzzleRulesTests: XCTestCase {
         }
         XCTAssertTrue(LevelRepository.levels.prefix(10).allSatisfy { $0.difficulty == .easy || $0.difficulty == .tutorial })
         XCTAssertEqual(LevelRepository.level(14).difficulty, .hard)
-        XCTAssertEqual(LevelRepository.level(17).difficulty, .superHard)
+        XCTAssertEqual(LevelRepository.level(17).difficulty, .veryHard)
         XCTAssertEqual(LevelRepository.level(18).difficulty, .easy)
+        XCTAssertEqual(LevelRepository.level(20).difficulty, .nightmare)
     }
     func testAllTwentyBoardsAreAuthoredEmojiPaintings() throws {
         XCTAssertEqual(Set(LevelRepository.levels.compactMap(\.rewardEmoji)).count, 20)
@@ -185,17 +186,23 @@ final class PuzzleRulesTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: name) }
         let store = ProgressStore(defaults: defaults)
         XCTAssertEqual(store.unlocked, 1)
+        XCTAssertEqual(store.hints, 3)
+        XCTAssertTrue(store.consumeHint())
+        XCTAssertEqual(store.hints, 2)
         store.sound = false; store.haptics = false
         store.complete(1, time: 5); store.complete(1, time: 8)
         XCTAssertEqual(defaults.double(forKey: "bestTime.1"), 5)
         XCTAssertEqual(store.completedLevels, [1])
         let loaded = ProgressStore(defaults: defaults)
         XCTAssertEqual(loaded.unlocked, 2); XCTAssertEqual(loaded.completedLevels, [1])
+        XCTAssertEqual(loaded.hints, 2)
+        loaded.grantHint(2); XCTAssertEqual(loaded.hints, 4)
         XCTAssertFalse(loaded.sound); XCTAssertFalse(loaded.haptics)
         loaded.complete(20, time: 20); XCTAssertEqual(loaded.unlocked, 20)
         loaded.reset()
         XCTAssertEqual(ProgressStore(defaults: defaults).unlocked, 1)
         XCTAssertTrue(loaded.completedLevels.isEmpty)
+        XCTAssertEqual(loaded.hints, 4)
         XCTAssertEqual(defaults.double(forKey: "bestTime.1"), 0)
         XCTAssertFalse(ProgressStore(defaults: defaults).sound)
     }

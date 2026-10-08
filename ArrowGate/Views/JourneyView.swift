@@ -121,16 +121,16 @@ private struct JourneyLevelNode: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(Color.white)
-                    .overlay(Circle().stroke(current ? GameStyle.accent : Color(uiColor: GameStyle.guideDot).opacity(0.55),
-                                             lineWidth: current ? 5 : 2))
+                    .fill(locked ? (difficultyColor?.opacity(0.11) ?? Color.white) : Color.white)
+                    .overlay(Circle().stroke(nodeStroke,
+                                             lineWidth: current ? 5 : difficultyColor == nil ? 2 : 3))
                     .shadow(color: .black.opacity(completed || current ? 0.07 : 0), radius: 8, y: 3)
                 if completed {
                     LevelRewardView(level: level, size: 52)
                 } else if locked {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(GameStyle.muted.opacity(0.55))
+                        .foregroundColor(difficultyColor ?? GameStyle.muted.opacity(0.55))
                 } else {
                     Text(String(level.id))
                         .font(.system(size: 19, weight: .bold, design: .rounded))
@@ -149,11 +149,45 @@ private struct JourneyLevelNode: View {
                         .offset(x: 96)
                 }
             }
+            .overlay(alignment: .bottom) {
+                if let difficultyLabel, let difficultyColor {
+                    Text(difficultyLabel)
+                        .font(.system(size: 8, weight: .bold, design: .rounded))
+                        .tracking(0.35)
+                        .foregroundColor(difficultyColor)
+                        .padding(.horizontal, 7)
+                        .frame(height: 19)
+                        .background(difficultyColor.opacity(0.11), in: Capsule())
+                        .offset(y: 17)
+                }
+            }
         }
         .buttonStyle(.plain)
         .disabled(locked)
-        .accessibilityLabel(locked ? "Level \(level.id), locked" : "Level \(level.id), \(completed ? "complete" : "current")")
+        .accessibilityLabel("Level \(level.id), \(level.difficulty?.title ?? "Normal"), \(locked ? "locked" : completed ? "complete" : "current")")
         .accessibilityIdentifier(current ? "mapPlay" : "mapLevel\(level.id)")
+    }
+
+    private var nodeStroke: Color {
+        current ? GameStyle.accent : difficultyColor ?? Color(uiColor: GameStyle.guideDot).opacity(0.55)
+    }
+
+    private var difficultyColor: Color? {
+        switch level.difficulty {
+        case .hard: return Color(red: 0.82, green: 0.42, blue: 0.08)
+        case .veryHard: return Color(red: 0.47, green: 0.28, blue: 0.69)
+        case .nightmare: return Color(red: 0.34, green: 0.10, blue: 0.34)
+        default: return nil
+        }
+    }
+
+    private var difficultyLabel: String? {
+        switch level.difficulty {
+        case .hard: return "HARD"
+        case .veryHard: return "VERY HARD"
+        case .nightmare: return "NIGHTMARE"
+        default: return nil
+        }
     }
 }
 

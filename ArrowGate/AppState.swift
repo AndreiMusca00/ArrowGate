@@ -41,15 +41,20 @@ final class AppState: ObservableObject {
 
     func play(_ number: Int? = nil) {
         var limit: TimeInterval? = nil
+        var hintDelay: TimeInterval = 5
         #if DEBUG
         if let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-test-time-limit"),
            ProcessInfo.processInfo.arguments.count > index + 1 {
             limit = Double(ProcessInfo.processInfo.arguments[index + 1])
         }
+        if let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-test-hint-delay"),
+           ProcessInfo.processInfo.arguments.count > index + 1 {
+            hintDelay = Double(ProcessInfo.processInfo.arguments[index + 1]) ?? 5
+        }
         #endif
         let id = number ?? progress.unlocked
         let level = progress.savedLevels.first { $0.id == id }?.definition ?? LevelRepository.level(id)
-        game = GameViewModel(level: level, store: progress, timeLimit: limit)
+        game = GameViewModel(level: level, store: progress, timeLimit: limit, idleHintDelay: hintDelay)
     }
     func menu() { game = nil; homeScreen = .menu }
     func showJourney() { game = nil; homeScreen = .journey }
