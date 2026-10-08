@@ -115,6 +115,9 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["journeyTab"].exists)
         XCTAssertTrue(app.buttons["galleryTab"].exists)
+        XCTAssertTrue(app.otherElements["eventDailySprint"].exists)
+        XCTAssertTrue(app.otherElements["eventHalloween"].exists)
+        XCTAssertTrue(app.otherElements["eventSpeedRun"].exists)
         capture("liquid-glass-menu")
 
         app.swipeRight()

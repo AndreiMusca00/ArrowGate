@@ -19,7 +19,7 @@ struct LiquidGlassNavBar: View {
                     title: "JOURNEY",
                     icon: "point.bottomleft.forward.to.point.topright.scurvepath",
                     selected: selection == .journey,
-                    action: state.showJourney
+                    action: { navigate(to: .journey) }
                 )
                 .overlay(alignment: .top) { progressBadge.offset(y: -20) }
                 .accessibilityIdentifier("journeyTab")
@@ -30,7 +30,7 @@ struct LiquidGlassNavBar: View {
                     title: "GALLERY",
                     icon: "face.smiling.inverse",
                     selected: selection == .gallery,
-                    action: state.showGallery
+                    action: { navigate(to: .gallery) }
                 )
                 .accessibilityIdentifier("galleryTab")
             }
@@ -56,7 +56,7 @@ struct LiquidGlassNavBar: View {
     }
 
     private var homeButton: some View {
-        Button { state.menu() } label: {
+        Button { navigate(to: .menu) } label: {
             VStack(spacing: 3) {
                 ZStack {
                     homeSurface
@@ -97,6 +97,13 @@ struct LiquidGlassNavBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func navigate(to screen: HomeScreen) {
+        guard selection != screen else { return }
+        withAnimation(.easeInOut(duration: 0.38)) {
+            state.show(screen)
+        }
     }
 
     @ViewBuilder private var glassSurface: some View {

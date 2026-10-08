@@ -47,20 +47,24 @@ struct MenuView: View {
         VStack(spacing: 0) {
             HStack { Text("A LITTLE ORDER. A BIG ESCAPE.").font(.system(size: 10, weight: .bold)).tracking(1.4).foregroundColor(GameStyle.muted)
                 Spacer(); IconButton(icon: "gearshape", label: "Settings") { settings = true } }
-            Spacer(minLength: 20)
+
+            HomeEventsView()
+                .padding(.top, 14)
+
+            Spacer(minLength: 12)
             HStack(spacing: 12) {
                 ForEach(Array(ArrowColor.allCases.prefix(4).enumerated()), id: \.offset) { index, color in
                     Image(systemName: ["arrow.right", "arrow.up", "arrow.down", "arrow.left"][index])
-                        .font(.system(size: 30, weight: .regular)).foregroundColor(GameStyle.color(color))
-                        .frame(width: 56, height: 64).background(GameStyle.panel, in: RoundedRectangle(cornerRadius: 18))
+                        .font(.system(size: 25, weight: .regular)).foregroundColor(GameStyle.color(color))
+                        .frame(width: 49, height: 54).background(GameStyle.panel, in: RoundedRectangle(cornerRadius: 16))
                         .rotationEffect(.degrees(index.isMultiple(of: 2) ? -8 : 8))
                 }
-            }.padding(.bottom, 30).accessibilityHidden(true)
-            Text("ARROW\nGATE").font(.system(size: 58, weight: .bold, design: .rounded)).tracking(-2)
-                .multilineTextAlignment(.center).lineSpacing(-8)
-            Text("Clear a path. Match the color.").font(.system(size: 16, design: .rounded))
-                .foregroundColor(GameStyle.muted).padding(.top, 15)
-            Spacer(minLength: 24)
+            }.padding(.bottom, 18).accessibilityHidden(true)
+            Text("ARROW GATE").font(.system(size: 44, weight: .bold, design: .rounded)).tracking(-1.5)
+                .multilineTextAlignment(.center)
+            Text("Clear a path. Match the color.").font(.system(size: 15, design: .rounded))
+                .foregroundColor(GameStyle.muted).padding(.top, 8)
+            Spacer(minLength: 16)
             VStack(spacing: 14) {
                 HStack { Circle().fill(GameStyle.accent).frame(width: 6, height: 6)
                     Text("LEVEL \(store.unlocked) UNLOCKED").font(.system(size: 12, weight: .bold)).tracking(1.5) }.foregroundColor(GameStyle.muted)

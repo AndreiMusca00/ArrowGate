@@ -25,6 +25,7 @@ struct HomePagerView: View {
                 .tag(HomeScreen.gallery)
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
+        .animation(.easeInOut(duration: 0.38), value: state.homeScreen)
         .background(GameStyle.background.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
             LiquidGlassNavBar(store: store, selection: state.homeScreen)
