@@ -28,7 +28,7 @@ struct HomePagerView: View {
         .animation(.easeInOut(duration: 0.38), value: state.homeScreen)
         .background(GameStyle.background.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            LiquidGlassNavBar(store: store, selection: state.homeScreen)
+            LiquidGlassNavBar(selection: selection)
                 .padding(.horizontal, 18)
                 .padding(.bottom, 4)
         }

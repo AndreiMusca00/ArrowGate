@@ -4,9 +4,7 @@ import SwiftUI
 /// On iOS 26 it uses the system Liquid Glass renderer. Older supported
 /// versions receive a material-backed treatment with the same layout.
 struct LiquidGlassNavBar: View {
-    @EnvironmentObject private var state: AppState
-    @ObservedObject var store: ProgressStore
-    let selection: HomeScreen
+    @Binding var selection: HomeScreen
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -89,7 +87,7 @@ struct LiquidGlassNavBar: View {
     private func navigate(to screen: HomeScreen) {
         guard selection != screen else { return }
         withAnimation(.easeInOut(duration: 0.38)) {
-            state.show(screen)
+            selection = screen
         }
     }
 

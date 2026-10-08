@@ -1,6 +1,6 @@
 # Arrow Gate
 
-Joc pentru iPhone, în SwiftUI și SpriteKit. Proiectul conține o campanie locală de 20 de niveluri.
+Joc pentru iPhone, în SwiftUI și SpriteKit. Proiectul conține o campanie locală de 40 de niveluri.
 
 ## Rulare
 
@@ -12,19 +12,20 @@ Pentru telefon, configurează echipa de semnare în Signing & Capabilities.
 | Componentă | Rol |
 |---|---|
 | `ArrowGate/ArrowGateApp.swift`, `AppState.swift` | Pornire, meniu și deschiderea nivelului |
-| `ArrowGate/Views/` | Meniu, setări și ecranul jocului |
+| `ArrowGate/Views/` | Ecranele principale ale aplicației |
+| `ArrowGate/Views/Components/` | Componente independente pentru niveluri, capitole, Journey și navigație |
 | `ArrowGate/GameScene.swift` | Tabla, desenarea săgeților, animații, porți și gesturi |
 | `ArrowGate/GameViewModel.swift` | Partidă, vieți, timer, pauză, hint și rezultat |
 | `ArrowGate/Models/` | Definiția nivelului, reguli, geometrie și încărcarea campaniei |
-| `ArrowGate/Levels/levels.json` | Cele 20 de niveluri incluse |
+| `ArrowGate/Levels/catalog.json` | Catalogul versionat cu toate capitolele și nivelurile incluse |
 | `ArrowGate/Services/LocalDatabase.swift` | Core Data: niveluri, nivel deblocat și cei mai buni timpi |
 | `ArrowGate/Services/ProgressStore.swift` | Progres și preferințe |
 | `ArrowGate/Services/AudioHapticsManager.swift` | Sunet și feedback haptic |
 | `Tests/`, `ArrowGateUITests/` | Verificări pentru reguli, salvare și joc |
 
-UI-ul folosește fundal alb cald, puncte de ghidaj, săgeți subțiri și porți la marginea tablei.
+UI-ul folosește fundal alb cald, puncte de ghidaj și săgeți subțiri.
 Nivelul apare întâi complet, apoi camera se apropie de centru. Tabla se poate deplasa și mări,
-cu limite de zoom între vederea completă și 3×. Tutorialul nu are limită de timp.
+cu limite controlate de joc. Tutorialul nu are limită de timp.
 
 ## Salvare locală
 

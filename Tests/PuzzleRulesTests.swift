@@ -19,6 +19,7 @@ final class PuzzleRulesTests: XCTestCase {
         try JSONEncoder().encode(fixtures).write(to: URL(fileURLWithPath: path))
     }
     func testAllPublishedLevelsAndEveryLegalChoice() throws {
+        XCTAssertEqual(LevelRepository.version, 1)
         XCTAssertEqual(LevelRepository.levels.count, 40)
         for level in LevelRepository.levels {
             let solution = try XCTUnwrap(LevelValidator.solution(for: level))

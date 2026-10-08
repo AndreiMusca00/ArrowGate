@@ -13,11 +13,11 @@ let package = Package(
                 "Info.plist", "ArrowGateApp.swift", "AppState.swift", "Services/AudioHapticsManager.swift"
             ],
             sources: [
-                "Models/ArrowMotion.swift", "Models/MistakeTracker.swift", "Models/LevelDefinition.swift",
+                "Models/ArrowMotion.swift", "Models/MistakeTracker.swift", "Models/GameCatalog.swift", "Models/LevelDefinition.swift",
                 "Models/PuzzleRules.swift", "Models/LevelRepository.swift",
                 "Services/ProgressStore.swift", "Services/LocalDatabase.swift"
             ],
-            resources: [.copy("Levels/levels.json"), .copy("Levels/chapters.json")]
+            resources: [.copy("Levels/catalog.json")]
         ),
         .testTarget(name: "ArrowGateRulesTests", dependencies: ["ArrowGateRules"], path: "Tests")
     ]

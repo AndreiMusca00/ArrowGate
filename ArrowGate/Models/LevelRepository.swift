@@ -2,39 +2,35 @@ import Foundation
 
 /// Published chapters and levels bundled with the game.
 enum LevelRepository {
-    static let chapters: [ChapterDefinition] = {
+    private static let catalog: GameCatalog = {
         #if SWIFT_PACKAGE
         let bundle = Bundle.module
         #else
         let bundle = Bundle.main
         #endif
-        guard let url = bundle.url(forResource: "chapters", withExtension: "json"),
+        guard let url = bundle.url(forResource: "catalog", withExtension: "json"),
               let data = try? Data(contentsOf: url),
-              let chapters = try? JSONDecoder().decode([ChapterDefinition].self, from: data),
-              chapters.map(\.id) == Array(1...chapters.count) else {
-            preconditionFailure("Missing or invalid bundled chapters.json")
+              let catalog = try? JSONDecoder().decode(GameCatalog.self, from: data),
+              catalog.version > 0,
+              catalog.chapters.map(\.id) == Array(1...catalog.chapters.count),
+              catalog.levels.map(\.id) == Array(1...catalog.levels.count),
+              catalog.levels.allSatisfy({ level in
+                  catalog.chapters.contains { chapter in
+                      chapter.id == level.chapterID && chapter.levelRange.contains(level.id)
+                  }
+              }),
+              catalog.chapters.allSatisfy({ chapter in
+                  catalog.levels.filter { $0.chapterID == chapter.id }.count == chapter.levelCount
+              }),
+              catalog.levels.allSatisfy({ LevelValidator.solution(for: $0) != nil }) else {
+            preconditionFailure("Missing or invalid bundled catalog.json")
         }
-        return chapters
+        return catalog
     }()
 
-    static let levels: [LevelDefinition] = {
-        #if SWIFT_PACKAGE
-        let bundle = Bundle.module
-        #else
-        let bundle = Bundle.main
-        #endif
-        guard let url = bundle.url(forResource: "levels", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let levels = try? JSONDecoder().decode([LevelDefinition].self, from: data),
-              levels.map(\.id) == Array(1...levels.count),
-              levels.allSatisfy({ level in
-                  chapters.contains { chapter in chapter.id == level.chapterID && chapter.levelRange.contains(level.id) }
-              }),
-              levels.allSatisfy({ LevelValidator.solution(for: $0) != nil }) else {
-            preconditionFailure("Missing or invalid bundled levels.json")
-        }
-        return levels
-    }()
+    static var version: Int { catalog.version }
+    static var chapters: [ChapterDefinition] { catalog.chapters }
+    static var levels: [LevelDefinition] { catalog.levels }
     static var count: Int { levels.count }
     static func level(_ number: Int) -> LevelDefinition { levels[min(max(number, 1), count) - 1] }
     static func chapter(_ id: Int) -> ChapterDefinition {
