@@ -14,6 +14,8 @@ final class GameViewModel: ObservableObject {
     @Published private(set) var elapsed: TimeInterval = 0
     @Published private(set) var hintsUsed = 0
     @Published private(set) var hintBalance: Int
+    @Published private(set) var reserveLifeBalance: Int
+    @Published private(set) var earnedReward: LevelCompletionReward?
     @Published private(set) var hintOfferVisible = false
     @Published private(set) var exiting: Set<Int> = []
     var animating: Bool { !exiting.isEmpty }
@@ -36,7 +38,8 @@ final class GameViewModel: ObservableObject {
     init(level: LevelDefinition, store: ProgressStore, hintLimit: Int? = nil,
          timeLimit: TimeInterval? = nil, idleHintDelay: TimeInterval = 5) {
         self.hintLimit = hintLimit; self.idleHintDelay = idleHintDelay
-        self.level = level; self.store = store; hintBalance = store.hints
+        self.level = level; self.store = store
+        hintBalance = store.hints; reserveLifeBalance = store.reserveLives
         self.timeLimit = timeLimit ?? level.timeLimit
         remaining = level.arrows; feedback = AudioHapticsManager(store: store)
         scene = GameScene(size: GameStyle.sceneSize); scene.configure(level: level)
@@ -75,8 +78,10 @@ final class GameViewModel: ObservableObject {
                     let finishTime = self.elapsed
                     self.scene.revealPainting { [weak self] in
                         guard let self, self.generation == token, self.phase == .playing else { return }
+                        self.earnedReward = self.store.complete(self.level.id, time: finishTime)
+                        self.hintBalance = self.store.hints
+                        self.reserveLifeBalance = self.store.reserveLives
                         self.phase = .won
-                        self.store.complete(self.level.id, time: finishTime)
                     }
                 }
             }
@@ -128,9 +133,35 @@ final class GameViewModel: ObservableObject {
     func pause() { if phase == .playing { hintOfferVisible = false; phase = .paused } }
     func resume() { guard phase == .paused else { return }; lastTick = Date(); lastProgressAt = Date(); phase = .playing }
     func restart() {
+        resetRound(hearts: GameStyle.startingHearts)
+    }
+    func retryAfterLoss() {
+        guard phase == .lost else { return }
+        resetRound(hearts: 1)
+    }
+    func continueWithReserveLife() {
+        guard phase == .lost, lossReason == .hearts, store.consumeReserveLife() else { return }
+        reserveLifeBalance = store.reserveLives
+        reviveWithOneHeart()
+    }
+    /// Rewarded-video providers can call this after playback completes.
+    /// Until an ad provider is connected, the video action grants locally.
+    func rewardedLifeDidComplete() {
+        guard phase == .lost, lossReason == .hearts else { return }
+        store.grantReserveLife()
+        reserveLifeBalance = store.reserveLives
+        continueWithReserveLife()
+    }
+    private func reviveWithOneHeart() {
+        hearts = 1
+        lastTick = Date(); lastProgressAt = Date()
+        phase = .playing
+    }
+    private func resetRound(hearts initialHearts: Int) {
         generation += 1; tracker.reset()
-        remaining = level.arrows; hearts = GameStyle.startingHearts; mistakes = 0; elapsed = 0
+        remaining = level.arrows; hearts = initialHearts; mistakes = 0; elapsed = 0
         hintsUsed = 0; hintBalance = store.hints; hintOfferVisible = false
+        reserveLifeBalance = store.reserveLives; earnedReward = nil
         exiting = []; lossReason = .hearts; lastTick = Date(); lastProgressAt = Date(); phase = .playing
         scene.isPaused = false; scene.configure(level: level); tutorialHint()
     }

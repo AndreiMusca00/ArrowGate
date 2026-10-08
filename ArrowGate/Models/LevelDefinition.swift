@@ -9,6 +9,37 @@ enum LevelDifficulty: String, Codable {
         }
     }
 }
+
+enum LevelRewardKind: String, Codable {
+    case hint, life
+}
+
+struct LevelCompletionReward: Codable, Equatable {
+    let kind: LevelRewardKind
+    let amount: Int
+
+    init(kind: LevelRewardKind, amount: Int = 1) {
+        self.kind = kind
+        self.amount = max(1, amount)
+    }
+}
+
+enum ChapterTheme: String, Codable {
+    case emoji, fruit
+}
+
+struct ChapterDefinition: Identifiable, Codable, Equatable {
+    let id: Int
+    let name: String
+    let subtitle: String
+    let firstLevel: Int
+    let levelCount: Int
+    let theme: ChapterTheme
+    let symbol: String
+
+    var lastLevel: Int { firstLevel + levelCount - 1 }
+    var levelRange: ClosedRange<Int> { firstLevel...lastLevel }
+}
 enum ArrowColor: String, CaseIterable, Codable { case yellow, blue, green, red, brown, cyan }
 enum Direction: Int, CaseIterable, Codable {
     case right, up, left, down
@@ -51,6 +82,7 @@ struct TargetCell: Hashable, Codable {
 }
 struct LevelDefinition: Identifiable, Codable {
     let id: Int
+    let chapterID: Int
     let size: Int
     let height: Int
     let timeLimit: TimeInterval
@@ -66,16 +98,18 @@ struct LevelDefinition: Identifiable, Codable {
     /// Native emoji used as the polished collectible when no custom artwork is supplied.
     let rewardEmoji: String?
     let rewardName: String?
-    init(id: Int, size: Int, height: Int? = nil, timeLimit: TimeInterval = 180,
+    let completionReward: LevelCompletionReward?
+    init(id: Int, chapterID: Int = 1, size: Int, height: Int? = nil, timeLimit: TimeInterval = 180,
          arrows: [ArrowDefinition], gates: [GateDefinition], difficulty: LevelDifficulty? = nil,
          activeCells: [Cell]? = nil, targetCells: [TargetCell]? = nil,
          completionArtwork: String? = nil, rewardEmoji: String? = nil,
-         rewardName: String? = nil) {
-        self.id = id; self.size = size; self.height = height ?? size
+         rewardName: String? = nil, completionReward: LevelCompletionReward? = nil) {
+        self.id = id; self.chapterID = chapterID; self.size = size; self.height = height ?? size
         self.timeLimit = timeLimit; self.arrows = arrows; self.gates = gates
         self.difficulty = difficulty; self.activeCells = activeCells; self.targetCells = targetCells
         self.completionArtwork = completionArtwork
         self.rewardEmoji = rewardEmoji; self.rewardName = rewardName
+        self.completionReward = completionReward
     }
     func contains(_ cell: Cell) -> Bool {
         guard (0..<size).contains(cell.x), (0..<height).contains(cell.y) else { return false }

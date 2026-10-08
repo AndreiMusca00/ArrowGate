@@ -17,7 +17,7 @@ let package = Package(
                 "Models/PuzzleRules.swift", "Models/LevelRepository.swift",
                 "Services/ProgressStore.swift", "Services/LocalDatabase.swift"
             ],
-            resources: [.copy("Levels/levels.json")]
+            resources: [.copy("Levels/levels.json"), .copy("Levels/chapters.json")]
         ),
         .testTarget(name: "ArrowGateRulesTests", dependencies: ["ArrowGateRules"], path: "Tests")
     ]

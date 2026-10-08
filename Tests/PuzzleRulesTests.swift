@@ -18,8 +18,8 @@ final class PuzzleRulesTests: XCTestCase {
         }
         try JSONEncoder().encode(fixtures).write(to: URL(fileURLWithPath: path))
     }
-    func testAllTwentyLevelsAndEveryLegalChoice() throws {
-        XCTAssertEqual(LevelRepository.levels.count, 20)
+    func testAllPublishedLevelsAndEveryLegalChoice() throws {
+        XCTAssertEqual(LevelRepository.levels.count, 40)
         for level in LevelRepository.levels {
             let solution = try XCTUnwrap(LevelValidator.solution(for: level))
             XCTAssertEqual(solution.count, level.arrows.count)
@@ -44,7 +44,8 @@ final class PuzzleRulesTests: XCTestCase {
                 guard let body = arrow.body else { return false }
                 return body.count == arrow.length && !body.isEmpty
             })
-            if level.id > 5 {
+            let chapter = LevelRepository.chapter(level.chapterID)
+            if level.id - chapter.firstLevel + 1 > 5 {
                 XCTAssertGreaterThanOrEqual(level.arrows.filter { arrow in
                     guard let body = arrow.body else { return false }
                     return zip(body, body.dropFirst()).contains { a, b in arrow.direction.dx == 0 ? a.x != b.x : a.y != b.y }
@@ -60,9 +61,9 @@ final class PuzzleRulesTests: XCTestCase {
         XCTAssertEqual(LevelRepository.level(18).difficulty, .easy)
         XCTAssertEqual(LevelRepository.level(20).difficulty, .nightmare)
     }
-    func testAllTwentyBoardsAreAuthoredEmojiPaintings() throws {
-        XCTAssertEqual(Set(LevelRepository.levels.compactMap(\.rewardEmoji)).count, 20)
-        XCTAssertEqual(Set(LevelRepository.levels.compactMap(\.rewardName)).count, 20)
+    func testAllPublishedBoardsAreAuthoredCollectiblePaintings() throws {
+        XCTAssertEqual(Set(LevelRepository.levels.compactMap(\.rewardEmoji)).count, 40)
+        XCTAssertEqual(Set(LevelRepository.levels.compactMap(\.rewardName)).count, 40)
         for level in LevelRepository.levels {
             let activeCells = try XCTUnwrap(level.activeCells)
             let targetCells = try XCTUnwrap(level.targetCells)
@@ -76,7 +77,12 @@ final class PuzzleRulesTests: XCTestCase {
         }
         XCTAssertEqual(LevelRepository.level(1).activeCells?.count, 69)
         XCTAssertEqual(LevelRepository.level(2).activeCells?.count, 61)
-        XCTAssertEqual(LevelRepository.level(20).size, 15)
+        XCTAssertEqual(LevelRepository.level(40).size, 15)
+        XCTAssertTrue(LevelRepository.levels.prefix(20).allSatisfy { $0.chapterID == 1 })
+        XCTAssertTrue(LevelRepository.levels.suffix(20).allSatisfy { $0.chapterID == 2 })
+        XCTAssertEqual(LevelRepository.chapters.map(\.levelCount), [20, 20])
+        XCTAssertEqual(LevelRepository.level(5).completionReward, LevelCompletionReward(kind: .hint))
+        XCTAssertEqual(LevelRepository.level(10).completionReward, LevelCompletionReward(kind: .life))
     }
     func testCollisionChecksEveryCellAndLongArrowTailInAllDirections() {
         for direction in Direction.allCases {
@@ -187,6 +193,7 @@ final class PuzzleRulesTests: XCTestCase {
         let store = ProgressStore(defaults: defaults)
         XCTAssertEqual(store.unlocked, 1)
         XCTAssertEqual(store.hints, 3)
+        XCTAssertEqual(store.reserveLives, 1)
         XCTAssertTrue(store.consumeHint())
         XCTAssertEqual(store.hints, 2)
         store.sound = false; store.haptics = false
@@ -198,11 +205,12 @@ final class PuzzleRulesTests: XCTestCase {
         XCTAssertEqual(loaded.hints, 2)
         loaded.grantHint(2); XCTAssertEqual(loaded.hints, 4)
         XCTAssertFalse(loaded.sound); XCTAssertFalse(loaded.haptics)
-        loaded.complete(20, time: 20); XCTAssertEqual(loaded.unlocked, 20)
+        loaded.complete(LevelRepository.count, time: 20); XCTAssertEqual(loaded.unlocked, LevelRepository.count)
         loaded.reset()
         XCTAssertEqual(ProgressStore(defaults: defaults).unlocked, 1)
         XCTAssertTrue(loaded.completedLevels.isEmpty)
-        XCTAssertEqual(loaded.hints, 4)
+        XCTAssertEqual(loaded.hints, 3)
+        XCTAssertEqual(loaded.reserveLives, 1)
         XCTAssertEqual(defaults.double(forKey: "bestTime.1"), 0)
         XCTAssertFalse(ProgressStore(defaults: defaults).sound)
     }

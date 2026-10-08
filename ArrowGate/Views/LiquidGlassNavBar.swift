@@ -21,7 +21,6 @@ struct LiquidGlassNavBar: View {
                     selected: selection == .journey,
                     action: { navigate(to: .journey) }
                 )
-                .overlay(alignment: .top) { progressBadge.offset(y: -20) }
                 .accessibilityIdentifier("journeyTab")
 
                 Color.clear.frame(width: 92, height: 1)
@@ -41,18 +40,6 @@ struct LiquidGlassNavBar: View {
         }
         .frame(height: 98)
         .accessibilityElement(children: .contain)
-    }
-
-    private var progressBadge: some View {
-        Text("\(store.completedLevels.count) / \(LevelRepository.count)")
-            .font(.system(size: 10, weight: .bold, design: .rounded))
-            .monospacedDigit()
-            .foregroundColor(GameStyle.accent)
-            .padding(.horizontal, 9)
-            .frame(height: 24)
-            .background(.thinMaterial, in: Capsule())
-            .overlay(Capsule().stroke(Color.white.opacity(0.72), lineWidth: 0.7))
-            .accessibilityLabel("\(store.completedLevels.count) of \(LevelRepository.count) levels complete")
     }
 
     private var homeButton: some View {

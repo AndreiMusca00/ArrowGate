@@ -82,7 +82,9 @@ struct SettingsView: View {
             Form {
                 Section("Feedback") { Toggle("Sound", isOn: $store.sound); Toggle("Haptics", isOn: $store.haptics) }
                 Section("Progress") {
-                    Text("Unlocked level: \(store.unlocked) / 20")
+                    Text("Unlocked level: \(store.unlocked) / \(LevelRepository.count)")
+                    LabeledContent("Hints", value: String(store.hints))
+                    LabeledContent("Reserve lives", value: String(store.reserveLives))
                     Button("Reset Progress", role: .destructive) { resetConfirmation = true }
                 }
             }.scrollContentBackground(.hidden).background(GameStyle.background)
