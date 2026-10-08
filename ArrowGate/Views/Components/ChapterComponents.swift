@@ -1,30 +1,43 @@
 import SwiftUI
 
-/// All chapter-specific styling lives here so a chapter can be restyled
-/// consistently in the collection, detail gallery, and Journey map.
-struct ChapterThemeStyle {
+/// Converts catalog values into SwiftUI values without knowing which chapter
+/// they belong to. Adding a chapter never requires a new Swift case.
+private struct ChapterVisualStyle {
     let primary: Color
     let secondary: Color
     let background: Color
     let decorations: [String]
+    let galleryCardHeight: CGFloat
+    let galleryCornerRadius: CGFloat
+    let detailBackgroundOpacity: Double
+    let mapCornerRadius: CGFloat
+    let mapBackgroundOpacity: Double
+    let mapBorderOpacity: Double
 
-    static func style(for theme: ChapterTheme) -> ChapterThemeStyle {
-        switch theme {
-        case .emoji:
-            return ChapterThemeStyle(
-                primary: Color(red: 0.91, green: 0.58, blue: 0.12),
-                secondary: Color(red: 0.91, green: 0.35, blue: 0.39),
-                background: Color(red: 1.00, green: 0.95, blue: 0.82),
-                decorations: ["☺︎", "✦", "♡"]
-            )
-        case .fruit:
-            return ChapterThemeStyle(
-                primary: Color(red: 0.20, green: 0.58, blue: 0.34),
-                secondary: Color(red: 0.91, green: 0.31, blue: 0.24),
-                background: Color(red: 0.88, green: 0.96, blue: 0.87),
-                decorations: ["🍃", "•", "✦"]
-            )
-        }
+    init(_ definition: ChapterStyleDefinition) {
+        primary = Color(catalogHex: definition.primaryColor)
+        secondary = Color(catalogHex: definition.secondaryColor)
+        background = Color(catalogHex: definition.backgroundColor)
+        decorations = definition.decorations
+        galleryCardHeight = definition.galleryCardHeight
+        galleryCornerRadius = definition.galleryCornerRadius
+        detailBackgroundOpacity = definition.detailBackgroundOpacity
+        mapCornerRadius = definition.mapCornerRadius
+        mapBackgroundOpacity = definition.mapBackgroundOpacity
+        mapBorderOpacity = definition.mapBorderOpacity
+    }
+}
+
+extension Color {
+    init(catalogHex: String) {
+        let value = UInt64(catalogHex.dropFirst(), radix: 16) ?? 0
+        self.init(
+            .sRGB,
+            red: Double((value >> 16) & 0xFF) / 255,
+            green: Double((value >> 8) & 0xFF) / 255,
+            blue: Double(value & 0xFF) / 255,
+            opacity: 1
+        )
     }
 }
 
@@ -35,12 +48,12 @@ struct ChapterGalleryCard: View {
     let unlocked: Bool
     let action: () -> Void
 
-    private var style: ChapterThemeStyle { .style(for: chapter.theme) }
+    private var style: ChapterVisualStyle { ChapterVisualStyle(chapter.style) }
 
     var body: some View {
         Button(action: action) {
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: style.galleryCornerRadius)
                     .fill(LinearGradient(
                         colors: unlocked ? [style.background, Color.white] : [Color.white, GameStyle.background],
                         startPoint: .topLeading,
@@ -53,9 +66,9 @@ struct ChapterGalleryCard: View {
                     lockedContent
                 }
             }
-            .frame(height: 210)
+            .frame(height: style.galleryCardHeight)
             .overlay(
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: style.galleryCornerRadius)
                     .stroke((unlocked ? style.primary : GameStyle.muted).opacity(0.10))
             )
         }
@@ -127,7 +140,7 @@ struct ChapterGalleryDetail: View {
 
     @Environment(\.dismiss) private var dismiss
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
-    private var style: ChapterThemeStyle { .style(for: chapter.theme) }
+    private var style: ChapterVisualStyle { ChapterVisualStyle(chapter.style) }
 
     var body: some View {
         NavigationStack {
@@ -142,7 +155,7 @@ struct ChapterGalleryDetail: View {
                 }
                 .padding(20)
             }
-            .background(style.background.opacity(0.42).ignoresSafeArea())
+            .background(style.background.opacity(style.detailBackgroundOpacity).ignoresSafeArea())
             .navigationTitle(chapter.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -160,17 +173,20 @@ struct JourneyChapterBackdrop: View {
     let chapter: ChapterDefinition
     let locked: Bool
 
-    private var style: ChapterThemeStyle { .style(for: chapter.theme) }
+    private var style: ChapterVisualStyle { ChapterVisualStyle(chapter.style) }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 32)
+            RoundedRectangle(cornerRadius: style.mapCornerRadius)
                 .fill(LinearGradient(
-                    colors: [style.background.opacity(0.78), Color.white.opacity(0.30)],
+                    colors: [style.background.opacity(style.mapBackgroundOpacity), Color.white.opacity(0.30)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ))
-                .overlay(RoundedRectangle(cornerRadius: 32).stroke(style.primary.opacity(0.10)))
+                .overlay(
+                    RoundedRectangle(cornerRadius: style.mapCornerRadius)
+                        .stroke(style.primary.opacity(style.mapBorderOpacity))
+                )
 
             HStack(spacing: 10) {
                 Image(systemName: locked ? "lock.fill" : chapter.symbol)

@@ -19,7 +19,8 @@ final class PuzzleRulesTests: XCTestCase {
         try JSONEncoder().encode(fixtures).write(to: URL(fileURLWithPath: path))
     }
     func testAllPublishedLevelsAndEveryLegalChoice() throws {
-        XCTAssertEqual(LevelRepository.version, 1)
+        XCTAssertEqual(LevelRepository.version, 3)
+        XCTAssertEqual(LevelRepository.levelsPerChapter, 50)
         XCTAssertEqual(LevelRepository.levels.count, 40)
         for level in LevelRepository.levels {
             let solution = try XCTUnwrap(LevelValidator.solution(for: level))
@@ -46,7 +47,8 @@ final class PuzzleRulesTests: XCTestCase {
                 return body.count == arrow.length && !body.isEmpty
             })
             let chapter = LevelRepository.chapter(level.chapterID)
-            if level.id - chapter.firstLevel + 1 > 5 {
+            let position = try XCTUnwrap(LevelRepository.levels(in: chapter).firstIndex { $0.id == level.id })
+            if position >= 5 {
                 XCTAssertGreaterThanOrEqual(level.arrows.filter { arrow in
                     guard let body = arrow.body else { return false }
                     return zip(body, body.dropFirst()).contains { a, b in arrow.direction.dx == 0 ? a.x != b.x : a.y != b.y }
@@ -81,7 +83,7 @@ final class PuzzleRulesTests: XCTestCase {
         XCTAssertEqual(LevelRepository.level(40).size, 15)
         XCTAssertTrue(LevelRepository.levels.prefix(20).allSatisfy { $0.chapterID == 1 })
         XCTAssertTrue(LevelRepository.levels.suffix(20).allSatisfy { $0.chapterID == 2 })
-        XCTAssertEqual(LevelRepository.chapters.map(\.levelCount), [20, 20])
+        XCTAssertEqual(LevelRepository.chapters.map(\.levelCount), [50, 50])
         XCTAssertEqual(LevelRepository.level(5).completionReward, LevelCompletionReward(kind: .hint))
         XCTAssertEqual(LevelRepository.level(10).completionReward, LevelCompletionReward(kind: .life))
     }

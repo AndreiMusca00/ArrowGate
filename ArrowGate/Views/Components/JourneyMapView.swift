@@ -33,7 +33,7 @@ struct JourneyMapView: View {
         ForEach(LevelRepository.chapters) { chapter in
             JourneyChapterBackdrop(
                 chapter: chapter,
-                locked: store.unlocked < chapter.firstLevel
+                locked: isLocked(chapter)
             )
             .frame(width: max(0, width - 20), height: backdropHeight(for: chapter))
             .position(x: width / 2, y: backdropCenterY(for: chapter))
@@ -72,6 +72,7 @@ struct JourneyMapView: View {
         ForEach(LevelRepository.levels) { level in
             JourneyLevelNode(
                 level: level,
+                chapterColor: Color(catalogHex: LevelRepository.chapter(level.chapterID).style.primaryColor),
                 completed: store.completedLevels.contains(level.id),
                 current: current == level.id,
                 locked: level.id > store.unlocked
@@ -96,23 +97,34 @@ struct JourneyMapView: View {
     }
 
     private func chapterIndex(for level: Int) -> Int {
-        LevelRepository.chapters.firstIndex { $0.levelRange.contains(level) } ?? 0
+        guard let chapterID = LevelRepository.levels.first(where: { $0.id == level })?.chapterID else { return 0 }
+        return LevelRepository.chapters.firstIndex { $0.id == chapterID } ?? 0
     }
 
     private func yPosition(for level: Int) -> CGFloat {
-        top + CGFloat(level - 1) * step + CGFloat(chapterIndex(for: level)) * chapterGap
+        let index = LevelRepository.levels.firstIndex { $0.id == level } ?? 0
+        return top + CGFloat(index) * step + CGFloat(chapterIndex(for: level)) * chapterGap
     }
 
     private func backdropHeight(for chapter: ChapterDefinition) -> CGFloat {
-        CGFloat(chapter.levelCount - 1) * step + top + 70
+        CGFloat(max(0, LevelRepository.levels(in: chapter).count - 1)) * step + top + 70
     }
 
     private func backdropCenterY(for chapter: ChapterDefinition) -> CGFloat {
-        (yPosition(for: chapter.firstLevel) + yPosition(for: chapter.lastLevel)) / 2 + 4
+        let levels = LevelRepository.levels(in: chapter)
+        guard let first = levels.first, let last = levels.last else { return 0 }
+        return (yPosition(for: first.id) + yPosition(for: last.id)) / 2 + 4
     }
 
     private func xOffset(for level: Int) -> CGFloat {
         let offsets: [CGFloat] = [-18, 22, 38, 5, -34, -22, 20, 36, 10, -28]
-        return offsets[(level - 1) % offsets.count]
+        let chapter = LevelRepository.chapter(containing: level)
+        let localIndex = LevelRepository.levels(in: chapter).firstIndex { $0.id == level } ?? 0
+        return offsets[localIndex % offsets.count]
+    }
+
+    private func isLocked(_ chapter: ChapterDefinition) -> Bool {
+        guard let first = LevelRepository.firstLevel(in: chapter) else { return true }
+        return store.unlocked < first.id
     }
 }

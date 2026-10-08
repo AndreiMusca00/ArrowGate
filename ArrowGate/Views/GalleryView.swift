@@ -22,8 +22,8 @@ struct EmojiGalleryView: View {
                     ForEach(LevelRepository.chapters) { chapter in
                         ChapterGalleryCard(
                             chapter: chapter,
-                            completed: store.completedLevels.filter { chapter.levelRange.contains($0) }.count,
-                            unlocked: store.unlocked >= chapter.firstLevel
+                            completed: completedCount(in: chapter),
+                            unlocked: isUnlocked(chapter)
                         ) {
                             selectedChapter = chapter
                         }
@@ -36,5 +36,15 @@ struct EmojiGalleryView: View {
         .sheet(item: $selectedChapter) { chapter in
             ChapterGalleryDetail(chapter: chapter, store: store)
         }
+    }
+
+    private func completedCount(in chapter: ChapterDefinition) -> Int {
+        let identifiers = Set(LevelRepository.levels(in: chapter).map(\.id))
+        return store.completedLevels.intersection(identifiers).count
+    }
+
+    private func isUnlocked(_ chapter: ChapterDefinition) -> Bool {
+        guard let first = LevelRepository.firstLevel(in: chapter) else { return false }
+        return store.unlocked >= first.id
     }
 }

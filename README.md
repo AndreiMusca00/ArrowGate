@@ -27,6 +27,11 @@ UI-ul folosește fundal alb cald, puncte de ghidaj și săgeți subțiri.
 Nivelul apare întâi complet, apoi camera se apropie de centru. Tabla se poate deplasa și mări,
 cu limite controlate de joc. Tutorialul nu are limită de timp.
 
+Catalogul declară 50 de niveluri pentru fiecare capitol. Culorile, decorațiile și dimensiunile
+vizuale ale unui capitol vin din câmpul `style`, iar animația nodului fiecărui nivel vine din
+Stările și animațiile nodurilor de nivel sunt definite central în Swift, în
+`LevelComponents.swift`. Un capitol nou nu necesită adăugarea unui caz nou în codul Swift.
+
 ## Salvare locală
 
 Nivelurile din JSON sunt copiate în Core Data și rămân disponibile offline.

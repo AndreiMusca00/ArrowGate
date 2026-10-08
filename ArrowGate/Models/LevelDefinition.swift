@@ -24,22 +24,28 @@ struct LevelCompletionReward: Codable, Equatable {
     }
 }
 
-enum ChapterTheme: String, Codable {
-    case emoji, fruit
+struct ChapterStyleDefinition: Codable, Equatable {
+    let primaryColor: String
+    let secondaryColor: String
+    let backgroundColor: String
+    let decorations: [String]
+    let galleryCardHeight: Double
+    let galleryCornerRadius: Double
+    let detailBackgroundOpacity: Double
+    let mapCornerRadius: Double
+    let mapBackgroundOpacity: Double
+    let mapBorderOpacity: Double
 }
 
 struct ChapterDefinition: Identifiable, Codable, Equatable {
     let id: Int
     let name: String
     let subtitle: String
-    let firstLevel: Int
     let levelCount: Int
-    let theme: ChapterTheme
     let symbol: String
-
-    var lastLevel: Int { firstLevel + levelCount - 1 }
-    var levelRange: ClosedRange<Int> { firstLevel...lastLevel }
+    let style: ChapterStyleDefinition
 }
+
 enum ArrowColor: String, CaseIterable, Codable { case yellow, blue, green, red, brown, cyan }
 enum Direction: Int, CaseIterable, Codable {
     case right, up, left, down
