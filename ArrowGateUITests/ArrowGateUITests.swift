@@ -70,8 +70,8 @@ final class ArrowGateUITests: XCTestCase {
     }
     func testFirstFiveLevelsRevealPaintings() throws {
         let levels = Array(try fixtures().prefix(5))
-        let expectedPaintedCells = [44, 45, 58, 41, 59]
-        let names = ["painted-heart", "painted-pyramid", "painted-tree", "painted-diamond", "painted-rocket"]
+        let expectedPaintedCells = [69, 45, 58, 41, 59]
+        let names = ["painted-smile", "painted-pyramid", "painted-tree", "painted-diamond", "painted-rocket"]
         for (index, level) in levels.enumerated() {
             app.launchArguments += ["-level", String(level.number)]
             app.launch(); XCTAssertTrue(board.waitForExistence(timeout: 10))
@@ -81,11 +81,27 @@ final class ArrowGateUITests: XCTestCase {
             }
             Thread.sleep(forTimeInterval: 0.85)
             XCTAssertTrue(summary.contains("painted \(expectedPaintedCells[index])"), summary)
-            capture(names[index])
             XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 4))
+            capture(names[index])
             app.terminate()
             app.launchArguments = ["-ui-testing", "-reset-test-progress", "-skip-board-intro"]
         }
+    }
+    func testSmileArtworkMorphsBeforeCompletionCard() throws {
+        let level = try XCTUnwrap(fixtures().first)
+        app.launchArguments += ["-level", "1"]
+        app.launch(); XCTAssertTrue(board.waitForExistence(timeout: 10))
+        for id in level.solution {
+            tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level)
+        }
+
+        // The completed mosaic should have time to become the polished collectible
+        // before the result card covers the board.
+        Thread.sleep(forTimeInterval: 2.65)
+        XCTAssertFalse(app.buttons["nextLevel"].exists)
+        capture("smile-artwork-morph")
+        XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 3))
+        capture("smile-artwork-card")
     }
     func testRapidDependentTapsAndRestartDuringExit() throws {
         let level = try XCTUnwrap(fixtures().first)
@@ -225,7 +241,7 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertTrue(board.waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts.matching(identifier: "countdown").matching(NSPredicate(format: "label CONTAINS %@", "∞")).firstMatch.exists)
         Thread.sleep(forTimeInterval: 3)
-        XCTAssertTrue(summary.contains("arrows 3")); XCTAssertEqual(lives, "3")
+        XCTAssertTrue(summary.contains("arrows 19")); XCTAssertEqual(lives, "3")
     }
     func testCountdownPausesAndExpires() {
         app.launchArguments += ["-level", "1", "-test-time-limit", "8"]; app.launch()

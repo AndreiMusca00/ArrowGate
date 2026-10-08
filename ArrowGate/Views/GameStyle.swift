@@ -36,6 +36,7 @@ enum GameStyle {
         case .blue: return UIColor(red: 0.30, green: 0.22, blue: 0.43, alpha: 1)
         case .green: return UIColor(red: 0.03, green: 0.37, blue: 0.39, alpha: 1)
         case .red: return UIColor(red: 0.82, green: 0.30, blue: 0.28, alpha: 1)
+        case .brown: return UIColor(red: 0.31, green: 0.15, blue: 0.06, alpha: 1)
         }
     }
     static func color(_ color: ArrowColor) -> Color { Color(uiColor: uiColor(color)) }

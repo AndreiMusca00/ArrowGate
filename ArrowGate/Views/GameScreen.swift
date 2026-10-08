@@ -43,8 +43,16 @@ struct GameScreen: View {
         ZStack {
             GameStyle.background.opacity(0.90).ignoresSafeArea()
             VStack(spacing: 18) {
-                Image(systemName: model.phase == .won ? "checkmark.seal.fill" : model.phase == .lost ? "heart.slash.fill" : "pause.circle.fill")
-                    .font(.system(size: 58)).foregroundColor(model.phase == .lost ? GameStyle.color(.red) : GameStyle.accent)
+                if model.phase == .won, let artwork = model.level.completionArtwork {
+                    Image(artwork)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 116, height: 116)
+                        .accessibilityHidden(true)
+                } else {
+                    Image(systemName: model.phase == .won ? "checkmark.seal.fill" : model.phase == .lost ? "heart.slash.fill" : "pause.circle.fill")
+                        .font(.system(size: 58)).foregroundColor(model.phase == .lost ? GameStyle.color(.red) : GameStyle.accent)
+                }
                 if model.phase == .paused, let difficulty = model.level.difficulty {
                     Text("Level \(String(model.level.id)) · \(difficulty.title)").foregroundColor(GameStyle.muted)
                 }

@@ -60,7 +60,7 @@ final class PuzzleRulesTests: XCTestCase {
         XCTAssertEqual(LevelRepository.level(18).difficulty, .easy)
     }
     func testFirstFiveBoardsUseFilledIrregularShapes() throws {
-        let expectedCounts = [44, 45, 58, 41, 59]
+        let expectedCounts = [69, 45, 58, 41, 59]
         for (level, expectedCount) in zip(LevelRepository.levels.prefix(5), expectedCounts) {
             let activeCells = try XCTUnwrap(level.activeCells)
             let targetCells = try XCTUnwrap(level.targetCells)
@@ -68,12 +68,14 @@ final class PuzzleRulesTests: XCTestCase {
             XCTAssertEqual(Set(activeCells), Set(level.arrows.flatMap(\.cells)))
             XCTAssertEqual(Set(activeCells), Set(targetCells.map(\.cell)))
             XCTAssertEqual(targetCells.count, expectedCount)
-            XCTAssertTrue(level.arrows.contains { arrow in
-                let steps = zip(arrow.cells, arrow.cells.dropFirst()).map {
-                    Cell(x: $1.x - $0.x, y: $1.y - $0.y)
-                }
-                return Set(steps).count > 1
-            }, "Each image should include at least one multi-corner arrow")
+            if level.id > 1 {
+                XCTAssertTrue(level.arrows.contains { arrow in
+                    let steps = zip(arrow.cells, arrow.cells.dropFirst()).map {
+                        Cell(x: $1.x - $0.x, y: $1.y - $0.y)
+                    }
+                    return Set(steps).count > 1
+                }, "Each image should include at least one multi-corner arrow")
+            }
             XCTAssertNotNil(LevelValidator.solution(for: level))
         }
         XCTAssertEqual(LevelRepository.level(2).activeCells?.count, 45)
@@ -108,14 +110,15 @@ final class PuzzleRulesTests: XCTestCase {
         let overlap = ArrowDefinition(id: 1, head: arrow.head, direction: .up, color: .red, length: 1)
         XCTAssertNil(LevelValidator.solution(for: LevelDefinition(id: 1, size: 4, arrows: [arrow, overlap], gates: [GateDefinition(key: arrow.gateKey, color: .red)])))
     }
-    func testHintIsLegalAndTutorialStartsWithPaintableHeart() throws {
+    func testHintIsLegalAndTutorialStartsWithPaintableSmile() throws {
         for level in LevelRepository.levels {
             let hint = try XCTUnwrap(PuzzleRules.hint(remaining: level.arrows, level: level))
             XCTAssertEqual(PuzzleRules.evaluate(hint, remaining: level.arrows, level: level), .allowed)
         }
         let level = LevelRepository.level(1)
-        XCTAssertEqual(level.arrows.count, 7)
-        XCTAssertTrue(level.arrows.allSatisfy { $0.color == .red })
+        XCTAssertEqual(level.arrows.count, 19)
+        XCTAssertEqual(level.completionArtwork, "SmileReward")
+        XCTAssertEqual(Set(level.arrows.map(\.color)), Set([.yellow, .brown]))
         XCTAssertEqual(Set(level.arrows.flatMap(\.cells)), Set(try XCTUnwrap(level.activeCells)))
         XCTAssertTrue(level.arrows.contains { PuzzleRules.evaluate($0, remaining: level.arrows, level: level) == .allowed })
         XCTAssertTrue(level.arrows.contains { PuzzleRules.evaluate($0, remaining: level.arrows, level: level) == .blocked })

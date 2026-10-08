@@ -45,7 +45,7 @@ struct MenuView: View {
                 Spacer(); IconButton(icon: "gearshape", label: "Settings") { settings = true } }
             Spacer(minLength: 20)
             HStack(spacing: 12) {
-                ForEach(Array(ArrowColor.allCases.enumerated()), id: \.offset) { index, color in
+                ForEach(Array(ArrowColor.allCases.prefix(4).enumerated()), id: \.offset) { index, color in
                     Image(systemName: ["arrow.right", "arrow.up", "arrow.down", "arrow.left"][index])
                         .font(.system(size: 30, weight: .regular)).foregroundColor(GameStyle.color(color))
                         .frame(width: 56, height: 64).background(GameStyle.panel, in: RoundedRectangle(cornerRadius: 18))

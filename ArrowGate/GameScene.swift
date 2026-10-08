@@ -551,6 +551,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         let zoomDuration: TimeInterval = 0.46
         let fillStart = zoomDuration + 0.10
         var finalDelay: TimeInterval = 0
+        var tiles: [SKSpriteNode] = []
 
         tutorial.run(.fadeOut(withDuration: 0.20))
         for (cell, dot) in guideDots where paintedCells[cell] == nil {
@@ -575,6 +576,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
             tile.position = point(cell); tile.zPosition = CGFloat(mark.order) * 0.001
             tile.alpha = 0; tile.setScale(1.2 / GameStyle.cellSize)
             paintLayer.addChild(tile)
+            tiles.append(tile)
             let startScale = 1.2 / GameStyle.cellSize
             let transform = SKAction.customAction(withDuration: 0.30) { node, elapsed in
                 let t = min(1, CGFloat(elapsed / 0.30))
@@ -592,8 +594,93 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         ])
         zoomOut.timingMode = .easeInEaseOut
         let revealEnd = finalDelay + 0.38
+        let completionDelay: TimeInterval
+        if let artworkName = level.completionArtwork {
+            let morphStart = revealEnd + 0.28
+            let wipeDuration: TimeInterval = 0.92
+            let artwork = SKSpriteNode(imageNamed: artworkName)
+            let artworkSize = min(boardWidth, boardHeight) * 0.94
+            artwork.size = CGSize(width: artworkSize, height: artworkSize)
+            artwork.position = .zero
+
+            // Reveal the polished artwork behind a left-to-right mask. This makes
+            // the final transformation read as one continuous sweep instead of a
+            // cross-fade between two unrelated images.
+            let artworkReveal = SKCropNode()
+            artworkReveal.position = centre
+            artworkReveal.zPosition = 20
+            artworkReveal.setScale(0.985)
+            let revealMask = SKSpriteNode(color: .white,
+                                          size: CGSize(width: artworkSize, height: artworkSize))
+            revealMask.anchorPoint = CGPoint(x: 0, y: 0.5)
+            revealMask.position = CGPoint(x: -artworkSize / 2, y: 0)
+            revealMask.xScale = 0.001
+            artworkReveal.maskNode = revealMask
+            artworkReveal.addChild(artwork)
+            paintLayer.addChild(artworkReveal)
+
+            for tile in tiles {
+                let progress = min(1, max(0, (tile.position.x - (centre.x - artworkSize / 2)) / artworkSize))
+                let tileDelay = morphStart + Double(progress) * wipeDuration
+                let towardCentre = CGPoint(
+                    x: tile.position.x + (centre.x - tile.position.x) * 0.035,
+                    y: tile.position.y + (centre.y - tile.position.y) * 0.035
+                )
+                let gather = SKAction.group([
+                    .move(to: towardCentre, duration: 0.18),
+                    .scale(to: 0.72, duration: 0.18),
+                    .fadeOut(withDuration: 0.16)
+                ])
+                gather.timingMode = .easeInEaseOut
+                tile.run(.sequence([.wait(forDuration: tileDelay), gather,
+                                    .removeFromParent()]), withKey: "artworkMorph")
+            }
+
+            let uncover = SKAction.scaleX(to: 1, duration: wipeDuration)
+            uncover.timingMode = .easeInEaseOut
+            revealMask.run(.sequence([.wait(forDuration: morphStart), uncover]),
+                           withKey: "artworkWipe")
+            let breathe = SKAction.scale(to: 1.015, duration: wipeDuration)
+            breathe.timingMode = .easeInEaseOut
+            let settle = SKAction.scale(to: 1, duration: 0.18)
+            settle.timingMode = .easeInEaseOut
+            artworkReveal.run(.sequence([.wait(forDuration: morphStart), breathe, settle]),
+                              withKey: "polishedArtwork")
+
+            // A thin warm highlight marks the wipe edge, like a ruler gliding
+            // over the mosaic. It is decorative and disappears before the hold.
+            let sweep = SKNode()
+            sweep.position = CGPoint(x: centre.x - artworkSize / 2, y: centre.y)
+            sweep.zPosition = 22
+            let glow = SKShapeNode(rectOf: CGSize(width: 6, height: artworkSize * 1.04),
+                                   cornerRadius: 3)
+            glow.fillColor = UIColor(red: 1, green: 0.73, blue: 0.18, alpha: 0.18)
+            glow.strokeColor = .clear
+            let edge = SKShapeNode(rectOf: CGSize(width: 1.4, height: artworkSize),
+                                   cornerRadius: 0.7)
+            edge.fillColor = UIColor(red: 1, green: 0.88, blue: 0.50, alpha: 0.92)
+            edge.strokeColor = .clear
+            sweep.addChild(glow); sweep.addChild(edge); sweep.alpha = 0
+            paintLayer.addChild(sweep)
+            let glide = SKAction.moveTo(x: centre.x + artworkSize / 2, duration: wipeDuration)
+            glide.timingMode = .easeInEaseOut
+            let shimmer = SKAction.sequence([
+                .fadeIn(withDuration: 0.08),
+                .wait(forDuration: wipeDuration - 0.16),
+                .fadeOut(withDuration: 0.08)
+            ])
+            sweep.run(.sequence([
+                .wait(forDuration: morphStart),
+                .group([glide, shimmer]),
+                .removeFromParent()
+            ]), withKey: "artworkSweep")
+            // Let the player enjoy the finished collectible before the result card.
+            completionDelay = morphStart + wipeDuration + 1.05
+        } else {
+            completionDelay = revealEnd + 0.80
+        }
         boardCamera.run(.sequence([zoomOut,
-                                   .wait(forDuration: max(0, revealEnd - zoomDuration) + 0.80),
+                                   .wait(forDuration: max(0, completionDelay - zoomDuration)),
                                    .run(completion)]),
                         withKey: "paintingReveal")
     }
