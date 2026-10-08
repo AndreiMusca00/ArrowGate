@@ -1,7 +1,6 @@
 import SwiftUI
 
-struct JourneyMapView: View {
-    @EnvironmentObject private var state: AppState
+struct JourneyView: View {
     @ObservedObject var store: ProgressStore
 
     private var completed: Int { store.completedLevels.count }
@@ -24,15 +23,12 @@ struct JourneyMapView: View {
                     }
                 }
             }
-            JourneyTabs(selection: .map)
         }
         .background(GameStyle.background.ignoresSafeArea())
     }
 
     private var journeyHeader: some View {
-        ZStack(alignment: .leading) {
-            MinimalIconButton(icon: "chevron.left", label: "Back") { state.menu() }
-                .accessibilityIdentifier("mapBack")
+        ZStack {
             VStack(spacing: 5) {
                 Text("EMOJI WORLD")
                     .font(.system(size: 25, weight: .bold, design: .rounded))
@@ -47,7 +43,6 @@ struct JourneyMapView: View {
             .frame(maxWidth: .infinity)
             .allowsHitTesting(false)
         }
-        .padding(.horizontal, 16)
         .frame(height: 92)
     }
 }
@@ -177,89 +172,5 @@ private struct MilestoneBadge: View {
         .background(Color.white.opacity(0.88), in: Capsule())
         .overlay(Capsule().stroke(Color.black.opacity(0.04)))
         .accessibilityLabel("Level \(level) reward")
-    }
-}
-
-struct EmojiGalleryView: View {
-    @EnvironmentObject private var state: AppState
-    @ObservedObject var store: ProgressStore
-    private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .leading) {
-                MinimalIconButton(icon: "chevron.left", label: "Back") { state.menu() }
-                    .accessibilityIdentifier("galleryBack")
-                VStack(spacing: 4) {
-                    Text("GALLERY")
-                        .font(.system(size: 25, weight: .bold, design: .rounded))
-                        .accessibilityIdentifier("emojiGallery")
-                    Text("\(store.completedLevels.count) collected")
-                        .font(.system(size: 15, design: .rounded)).foregroundColor(GameStyle.muted)
-                }.frame(maxWidth: .infinity).allowsHitTesting(false)
-            }
-            .padding(.horizontal, 16).frame(height: 82)
-
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVGrid(columns: columns, spacing: 14) {
-                    ForEach(LevelRepository.levels) { level in
-                        GalleryCard(level: level, unlocked: store.completedLevels.contains(level.id))
-                    }
-                }.padding(.horizontal, 20).padding(.vertical, 12)
-            }
-            JourneyTabs(selection: .gallery)
-        }
-        .background(GameStyle.background.ignoresSafeArea())
-    }
-}
-
-private struct GalleryCard: View {
-    let level: LevelDefinition
-    let unlocked: Bool
-    var body: some View {
-        VStack(spacing: 10) {
-            if unlocked {
-                LevelRewardView(level: level, size: 82)
-            } else {
-                ZStack {
-                    Circle().fill(GameStyle.background).frame(width: 76, height: 76)
-                    Image(systemName: "lock.fill").foregroundColor(GameStyle.muted.opacity(0.45))
-                }
-            }
-            Text(unlocked ? (level.rewardName ?? "Emoji \(level.id)") : "Emoji \(level.id)")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .foregroundColor(unlocked ? GameStyle.ink : GameStyle.muted)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity).frame(height: 132)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 22))
-        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.black.opacity(0.035)))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(unlocked ? "\(level.rewardName ?? "Emoji \(level.id)"), collected" : "Emoji \(level.id), locked")
-    }
-}
-
-private struct JourneyTabs: View {
-    @EnvironmentObject private var state: AppState
-    let selection: HomeScreen
-    var body: some View {
-        HStack(spacing: 80) {
-            tab(title: "MAP", icon: "map.fill", active: selection == .map) { state.showMap() }
-                .accessibilityIdentifier("mapTab")
-            tab(title: "GALLERY", icon: "square.grid.2x2.fill", active: selection == .gallery) { state.showGallery() }
-                .accessibilityIdentifier("galleryTab")
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 68)
-        .background(.ultraThinMaterial)
-    }
-
-    private func tab(title: String, icon: String, active: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon).font(.system(size: 17, weight: .semibold))
-                Text(title).font(.system(size: 11, weight: .bold, design: .rounded))
-            }.foregroundColor(active ? GameStyle.accent : GameStyle.muted.opacity(0.55))
-        }.buttonStyle(.plain)
     }
 }

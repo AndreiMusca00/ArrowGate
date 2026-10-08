@@ -8,11 +8,7 @@ struct RootView: View {
             if let game = state.game {
                 GameScreen(model: game).id(ObjectIdentifier(game))
             } else {
-                switch state.homeScreen {
-                case .menu: MenuView(store: state.progress)
-                case .map: JourneyMapView(store: state.progress)
-                case .gallery: EmojiGalleryView(store: state.progress)
-                }
+                HomePagerView(store: state.progress)
             }
         }
     }
@@ -68,7 +64,8 @@ struct MenuView: View {
             VStack(spacing: 14) {
                 HStack { Circle().fill(GameStyle.accent).frame(width: 6, height: 6)
                     Text("LEVEL \(store.unlocked) UNLOCKED").font(.system(size: 12, weight: .bold)).tracking(1.5) }.foregroundColor(GameStyle.muted)
-                ActionButton(title: "PLAY", icon: "play.fill", primary: true) { state.showMap() }.accessibilityIdentifier("play")
+                ActionButton(title: "PLAY", icon: "play.fill", primary: true) { state.play() }
+                    .accessibilityIdentifier("play")
             }
             Spacer(minLength: 20)
         }.foregroundColor(GameStyle.ink).padding(.horizontal, 28).padding(.vertical, 16)

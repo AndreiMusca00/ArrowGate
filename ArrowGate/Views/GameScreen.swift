@@ -59,7 +59,7 @@ struct GameScreen: View {
                 if model.phase == .won {
                     Text("\(model.formattedElapsed)  ·  \(model.mistakes) mistakes").foregroundColor(GameStyle.muted)
                     if model.level.id < LevelRepository.count {
-                        ActionButton(title: "Continue journey", icon: "map", primary: true) { state.showMap() }.accessibilityIdentifier("nextLevel")
+                        ActionButton(title: "Continue journey", icon: "map", primary: true) { state.showJourney() }.accessibilityIdentifier("nextLevel")
                     } else {
                         if model.level.id == LevelRepository.count { Text("20 / 20 puzzles complete").foregroundColor(GameStyle.muted) }
                         ActionButton(title: "Open gallery", icon: "square.grid.2x2", primary: true) { state.showGallery() }
