@@ -50,6 +50,8 @@ final class ArrowGateUITests: XCTestCase {
         let levels = try fixtures()
         app.launch(); XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10)); capture("menu")
         app.buttons["play"].tap()
+        XCTAssertTrue(app.staticTexts["journeyMap"].waitForExistence(timeout: 5)); capture("emoji-world-map")
+        app.buttons["mapPlay"].tap()
         for level in levels {
             XCTAssertTrue(board.waitForExistence(timeout: 5)); XCTAssertTrue(summary.contains("Level \(level.number);"))
             capture("level-\(level.number)"); hint()
@@ -59,9 +61,13 @@ final class ArrowGateUITests: XCTestCase {
                 XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS '0 mistakes'")).firstMatch.exists)
                 if level.number == 1 { capture("victory") }
                 app.buttons["nextLevel"].tap()
+                XCTAssertTrue(app.staticTexts["journeyMap"].waitForExistence(timeout: 5))
+                app.buttons["mapPlay"].tap()
             } else {
                 XCTAssertTrue(app.staticTexts["Gallery complete!"].waitForExistence(timeout: 5)); capture("campaign-complete")
-                app.buttons["Main menu"].tap()
+                app.buttons["Open gallery"].tap()
+                XCTAssertTrue(app.staticTexts["emojiGallery"].waitForExistence(timeout: 5))
+                app.buttons["galleryBack"].tap()
                 XCTAssertTrue(app.staticTexts["LEVEL 20 UNLOCKED"].waitForExistence(timeout: 5))
             }
         }
@@ -70,8 +76,8 @@ final class ArrowGateUITests: XCTestCase {
     }
     func testFirstFiveLevelsRevealPaintings() throws {
         let levels = Array(try fixtures().prefix(5))
-        let expectedPaintedCells = [69, 45, 58, 41, 59]
-        let names = ["painted-smile", "painted-pyramid", "painted-tree", "painted-diamond", "painted-rocket"]
+        let expectedPaintedCells = [69, 61, 61, 61, 61]
+        let names = ["painted-happy", "painted-cool", "painted-love", "painted-joy", "painted-angel"]
         for (index, level) in levels.enumerated() {
             app.launchArguments += ["-level", String(level.number)]
             app.launch(); XCTAssertTrue(board.waitForExistence(timeout: 10))
@@ -86,6 +92,24 @@ final class ArrowGateUITests: XCTestCase {
             app.terminate()
             app.launchArguments = ["-ui-testing", "-reset-test-progress", "-skip-board-intro"]
         }
+    }
+    func testJourneyMapAndGalleryReflectCollectedEmoji() throws {
+        let level = try XCTUnwrap(fixtures().first)
+        app.launch(); XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))
+        app.buttons["play"].tap()
+        XCTAssertTrue(app.staticTexts["journeyMap"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["0 / 20"].exists); capture("journey-empty")
+        app.buttons["galleryTab"].tap()
+        XCTAssertTrue(app.staticTexts["emojiGallery"].waitForExistence(timeout: 5)); capture("gallery-empty")
+        app.buttons["mapTab"].tap(); app.buttons["mapPlay"].tap()
+        XCTAssertTrue(board.waitForExistence(timeout: 5))
+        for id in level.solution { tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level) }
+        XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 6))
+        app.buttons["nextLevel"].tap()
+        XCTAssertTrue(app.staticTexts["journeyMap"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["1 / 20"].exists); capture("journey-one-collected")
+        app.buttons["galleryTab"].tap()
+        XCTAssertTrue(app.staticTexts["Happy"].waitForExistence(timeout: 5)); capture("gallery-one-collected")
     }
     func testSmileArtworkMorphsBeforeCompletionCard() throws {
         let level = try XCTUnwrap(fixtures().first)
@@ -155,6 +179,7 @@ final class ArrowGateUITests: XCTestCase {
         tapArrow(blocked, level: level); XCTAssertEqual(lives, "2")
     }
     func testCleanBoardIntroductionAndZoomLimits() throws {
+        let level = try XCTUnwrap(fixtures().first { $0.number == 17 })
         app.launchArguments.removeAll { $0 == "-skip-board-intro" }
         app.launchArguments += ["-level", "17"]
         app.launch()
@@ -169,7 +194,7 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertTrue(summary.contains("zoom 1.6"))
         board.swipeLeft(); board.swipeUp(); board.swipeRight(); board.swipeDown()
         XCTAssertEqual(lives, "3")
-        XCTAssertTrue(summary.contains("arrows 18"))
+        XCTAssertTrue(summary.contains("arrows \(level.arrows.count)"))
         capture("clean-maximum-zoom")
         app.buttons["pause"].tap(); capture("clean-pause")
         app.buttons["Continue"].tap()
@@ -216,6 +241,8 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))
         XCTAssertEqual(app.buttons.count, 2)
         app.buttons["play"].tap()
+        XCTAssertTrue(app.staticTexts["journeyMap"].waitForExistence(timeout: 5))
+        app.buttons["mapPlay"].tap()
         XCTAssertTrue(board.waitForExistence(timeout: 10))
         for id in level.solution { tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level) }
         XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 5))
@@ -233,6 +260,8 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertEqual(app.switches["Sound"].value as? String, "1")
         XCTAssertEqual(app.switches["Haptics"].value as? String, "1")
         app.buttons["Done"].tap(); app.buttons["play"].tap()
+        XCTAssertTrue(app.staticTexts["journeyMap"].waitForExistence(timeout: 5))
+        app.buttons["mapPlay"].tap()
         XCTAssertTrue(board.waitForExistence(timeout: 10))
         XCTAssertTrue(summary.contains("Level 2;"))
     }

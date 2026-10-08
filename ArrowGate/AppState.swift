@@ -1,9 +1,12 @@
 import Foundation
 import Combine
 
+enum HomeScreen { case menu, map, gallery }
+
 @MainActor
 final class AppState: ObservableObject {
     @Published var game: GameViewModel?
+    @Published private(set) var homeScreen: HomeScreen = .menu
     let progress: ProgressStore
     init() {
         #if DEBUG
@@ -48,5 +51,7 @@ final class AppState: ObservableObject {
         let level = progress.savedLevels.first { $0.id == id }?.definition ?? LevelRepository.level(id)
         game = GameViewModel(level: level, store: progress, timeLimit: limit)
     }
-    func menu() { game = nil }
+    func menu() { game = nil; homeScreen = .menu }
+    func showMap() { game = nil; homeScreen = .map }
+    func showGallery() { game = nil; homeScreen = .gallery }
 }

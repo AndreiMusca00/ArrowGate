@@ -4,7 +4,7 @@ enum LevelDifficulty: String, Codable {
     case tutorial, easy, normal, hard, superHard
     var title: String { self == .superHard ? "Super Hard" : rawValue.capitalized }
 }
-enum ArrowColor: String, CaseIterable, Codable { case yellow, blue, green, red, brown }
+enum ArrowColor: String, CaseIterable, Codable { case yellow, blue, green, red, brown, cyan }
 enum Direction: Int, CaseIterable, Codable {
     case right, up, left, down
     var dx: Int { self == .right ? 1 : self == .left ? -1 : 0 }
@@ -58,14 +58,19 @@ struct LevelDefinition: Identifiable, Codable {
     let targetCells: [TargetCell]?
     /// Optional polished reward image revealed after the pixel painting is complete.
     let completionArtwork: String?
+    /// Native emoji used as the polished collectible when no custom artwork is supplied.
+    let rewardEmoji: String?
+    let rewardName: String?
     init(id: Int, size: Int, height: Int? = nil, timeLimit: TimeInterval = 180,
          arrows: [ArrowDefinition], gates: [GateDefinition], difficulty: LevelDifficulty? = nil,
          activeCells: [Cell]? = nil, targetCells: [TargetCell]? = nil,
-         completionArtwork: String? = nil) {
+         completionArtwork: String? = nil, rewardEmoji: String? = nil,
+         rewardName: String? = nil) {
         self.id = id; self.size = size; self.height = height ?? size
         self.timeLimit = timeLimit; self.arrows = arrows; self.gates = gates
         self.difficulty = difficulty; self.activeCells = activeCells; self.targetCells = targetCells
         self.completionArtwork = completionArtwork
+        self.rewardEmoji = rewardEmoji; self.rewardName = rewardName
     }
     func contains(_ cell: Cell) -> Bool {
         guard (0..<size).contains(cell.x), (0..<height).contains(cell.y) else { return false }

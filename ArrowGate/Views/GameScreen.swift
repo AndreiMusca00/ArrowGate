@@ -43,11 +43,9 @@ struct GameScreen: View {
         ZStack {
             GameStyle.background.opacity(0.90).ignoresSafeArea()
             VStack(spacing: 18) {
-                if model.phase == .won, let artwork = model.level.completionArtwork {
-                    Image(artwork)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 116, height: 116)
+                if model.phase == .won,
+                   model.level.completionArtwork != nil || model.level.rewardEmoji != nil {
+                    LevelRewardView(level: model.level, size: 116)
                         .accessibilityHidden(true)
                 } else {
                     Image(systemName: model.phase == .won ? "checkmark.seal.fill" : model.phase == .lost ? "heart.slash.fill" : "pause.circle.fill")
@@ -61,10 +59,10 @@ struct GameScreen: View {
                 if model.phase == .won {
                     Text("\(model.formattedElapsed)  ·  \(model.mistakes) mistakes").foregroundColor(GameStyle.muted)
                     if model.level.id < LevelRepository.count {
-                        ActionButton(title: "Next level", icon: "arrow.right", primary: true) { state.play(model.level.id + 1) }.accessibilityIdentifier("nextLevel")
+                        ActionButton(title: "Continue journey", icon: "map", primary: true) { state.showMap() }.accessibilityIdentifier("nextLevel")
                     } else {
                         if model.level.id == LevelRepository.count { Text("20 / 20 puzzles complete").foregroundColor(GameStyle.muted) }
-                        ActionButton(title: "Main menu", primary: true) { state.menu() }
+                        ActionButton(title: "Open gallery", icon: "square.grid.2x2", primary: true) { state.showGallery() }
                     }
                     ActionButton(title: "Play again", icon: "arrow.counterclockwise") { model.restart() }
                 } else if model.phase == .paused {
@@ -80,6 +78,24 @@ struct GameScreen: View {
                 }
             }.foregroundColor(GameStyle.ink).padding(26).background(GameStyle.panel, in: RoundedRectangle(cornerRadius: 28)).padding(24)
         }
+    }
+}
+
+struct LevelRewardView: View {
+    let level: LevelDefinition
+    let size: CGFloat
+    var body: some View {
+        Group {
+            if let artwork = level.completionArtwork {
+                Image(artwork).resizable().scaledToFit()
+            } else {
+                Text(level.rewardEmoji ?? "✨")
+                    .font(.system(size: size * 0.78))
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
+            }
+        }
+        .frame(width: size, height: size)
     }
 }
 

@@ -42,53 +42,40 @@ final class PuzzleRulesTests: XCTestCase {
             XCTAssertTrue(level.gates.allSatisfy { $0.thawAfterMoves == 0 })
             XCTAssertTrue(level.arrows.allSatisfy { arrow in
                 guard let body = arrow.body else { return false }
-                return body.count >= (level.id <= 5 ? 1 : 3)
+                return body.count == arrow.length && !body.isEmpty
             })
             if level.id > 5 {
-                XCTAssertTrue(level.arrows.allSatisfy { arrow in
+                XCTAssertGreaterThanOrEqual(level.arrows.filter { arrow in
                     guard let body = arrow.body else { return false }
                     return zip(body, body.dropFirst()).contains { a, b in arrow.direction.dx == 0 ? a.x != b.x : a.y != b.y }
-                })
+                }.count, 2)
             }
             XCTAssertNotNil(LevelValidator.solution(for: level))
             if level.id == 1 { XCTAssertEqual(level.timeLimit, 0) }
-            else { XCTAssertTrue((25...80).contains(level.timeLimit)) }
+            else { XCTAssertTrue((25...90).contains(level.timeLimit)) }
         }
         XCTAssertTrue(LevelRepository.levels.prefix(10).allSatisfy { $0.difficulty == .easy || $0.difficulty == .tutorial })
         XCTAssertEqual(LevelRepository.level(14).difficulty, .hard)
         XCTAssertEqual(LevelRepository.level(17).difficulty, .superHard)
         XCTAssertEqual(LevelRepository.level(18).difficulty, .easy)
     }
-    func testFirstFiveBoardsUseFilledIrregularShapes() throws {
-        let expectedCounts = [69, 45, 58, 41, 59]
-        for (level, expectedCount) in zip(LevelRepository.levels.prefix(5), expectedCounts) {
+    func testAllTwentyBoardsAreAuthoredEmojiPaintings() throws {
+        XCTAssertEqual(Set(LevelRepository.levels.compactMap(\.rewardEmoji)).count, 20)
+        XCTAssertEqual(Set(LevelRepository.levels.compactMap(\.rewardName)).count, 20)
+        for level in LevelRepository.levels {
             let activeCells = try XCTUnwrap(level.activeCells)
             let targetCells = try XCTUnwrap(level.targetCells)
-            XCTAssertEqual(activeCells.count, expectedCount)
             XCTAssertEqual(Set(activeCells), Set(level.arrows.flatMap(\.cells)))
             XCTAssertEqual(Set(activeCells), Set(targetCells.map(\.cell)))
-            XCTAssertEqual(targetCells.count, expectedCount)
-            if level.id > 1 {
-                XCTAssertTrue(level.arrows.contains { arrow in
-                    let steps = zip(arrow.cells, arrow.cells.dropFirst()).map {
-                        Cell(x: $1.x - $0.x, y: $1.y - $0.y)
-                    }
-                    return Set(steps).count > 1
-                }, "Each image should include at least one multi-corner arrow")
-            }
+            XCTAssertEqual(targetCells.count, activeCells.count)
+            XCTAssertLessThan(activeCells.count, level.size * level.height)
+            XCTAssertNotNil(level.rewardEmoji)
+            XCTAssertNotNil(level.rewardName)
             XCTAssertNotNil(LevelValidator.solution(for: level))
         }
-        XCTAssertEqual(LevelRepository.level(2).activeCells?.count, 45)
-        XCTAssertLessThan(try XCTUnwrap(LevelRepository.level(3).activeCells).count,
-                          LevelRepository.level(3).size * LevelRepository.level(3).height)
-
-        // The rocket deliberately has red geometry over two blue target pixels.
-        // Those pixels must wait for the blue arrows that later cross them.
-        let rocket = LevelRepository.level(5)
-        let rocketTargets = Dictionary(uniqueKeysWithValues: try XCTUnwrap(rocket.targetCells).map { ($0.cell, $0.color) })
-        XCTAssertTrue(rocket.arrows.filter { $0.color == .red }.flatMap(\.cells).contains {
-            rocketTargets[$0] == .blue
-        })
+        XCTAssertEqual(LevelRepository.level(1).activeCells?.count, 69)
+        XCTAssertEqual(LevelRepository.level(2).activeCells?.count, 61)
+        XCTAssertEqual(LevelRepository.level(20).size, 15)
     }
     func testCollisionChecksEveryCellAndLongArrowTailInAllDirections() {
         for direction in Direction.allCases {
@@ -201,11 +188,14 @@ final class PuzzleRulesTests: XCTestCase {
         store.sound = false; store.haptics = false
         store.complete(1, time: 5); store.complete(1, time: 8)
         XCTAssertEqual(defaults.double(forKey: "bestTime.1"), 5)
+        XCTAssertEqual(store.completedLevels, [1])
         let loaded = ProgressStore(defaults: defaults)
-        XCTAssertEqual(loaded.unlocked, 2); XCTAssertFalse(loaded.sound); XCTAssertFalse(loaded.haptics)
+        XCTAssertEqual(loaded.unlocked, 2); XCTAssertEqual(loaded.completedLevels, [1])
+        XCTAssertFalse(loaded.sound); XCTAssertFalse(loaded.haptics)
         loaded.complete(20, time: 20); XCTAssertEqual(loaded.unlocked, 20)
         loaded.reset()
         XCTAssertEqual(ProgressStore(defaults: defaults).unlocked, 1)
+        XCTAssertTrue(loaded.completedLevels.isEmpty)
         XCTAssertEqual(defaults.double(forKey: "bestTime.1"), 0)
         XCTAssertFalse(ProgressStore(defaults: defaults).sound)
     }

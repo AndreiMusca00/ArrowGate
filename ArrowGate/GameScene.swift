@@ -595,12 +595,23 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         zoomOut.timingMode = .easeInEaseOut
         let revealEnd = finalDelay + 0.38
         let completionDelay: TimeInterval
-        if let artworkName = level.completionArtwork {
+        if level.completionArtwork != nil || level.rewardEmoji != nil {
             let morphStart = revealEnd + 0.28
             let wipeDuration: TimeInterval = 0.92
-            let artwork = SKSpriteNode(imageNamed: artworkName)
             let artworkSize = min(boardWidth, boardHeight) * 0.94
-            artwork.size = CGSize(width: artworkSize, height: artworkSize)
+            let artwork: SKNode
+            if let artworkName = level.completionArtwork {
+                let sprite = SKSpriteNode(imageNamed: artworkName)
+                sprite.size = CGSize(width: artworkSize, height: artworkSize)
+                artwork = sprite
+            } else {
+                let emoji = SKLabelNode(fontNamed: "AppleColorEmoji")
+                emoji.text = level.rewardEmoji
+                emoji.fontSize = artworkSize * 0.72
+                emoji.horizontalAlignmentMode = .center
+                emoji.verticalAlignmentMode = .center
+                artwork = emoji
+            }
             artwork.position = .zero
 
             // Reveal the polished artwork behind a left-to-right mask. This makes
