@@ -59,6 +59,11 @@ struct GameScreen: View {
                 .allowsHitTesting(model.phase != .playing)
         }
         .onChange(of: appPhase) { phase in if phase != .active { model.pause() } }
+        .onChange(of: model.phase) { phase in
+            if phase == .won || phase == .lost {
+                state.attemptEnded(model)
+            }
+        }
     }
     private var overlay: some View {
         ZStack {
@@ -82,16 +87,26 @@ struct GameScreen: View {
                     if let reward = model.earnedReward {
                         CompletionRewardBanner(reward: reward)
                     }
-                    if model.level.id < LevelRepository.count {
-                        ActionButton(title: "Next level", icon: "arrow.right", primary: true) {
-                            state.play(model.level.id + 1)
+                    if model.isReplay {
+                        ActionButton(title: "Main menu", icon: "house.fill", primary: true) {
+                            state.menu()
                         }
-                        .accessibilityIdentifier("nextLevel")
+                        .accessibilityIdentifier("replayMainMenu")
                     } else {
-                        if model.level.id == LevelRepository.count { Text("\(LevelRepository.count) / \(LevelRepository.count) puzzles complete").foregroundColor(GameStyle.muted) }
-                        ActionButton(title: "Open gallery", icon: "square.grid.2x2", primary: true) { state.showGallery() }
+                        if model.level.id < LevelRepository.count {
+                            ActionButton(title: "Next level", icon: "arrow.right", primary: true) {
+                                state.play(model.level.id + 1)
+                            }
+                            .accessibilityIdentifier("nextLevel")
+                        } else {
+                            Text("\(LevelRepository.count) / \(LevelRepository.count) puzzles complete")
+                                .foregroundColor(GameStyle.muted)
+                            ActionButton(title: "Open gallery", icon: "square.grid.2x2", primary: true) {
+                                state.showGallery()
+                            }
+                        }
+                        ActionButton(title: "Play again", icon: "arrow.counterclockwise") { model.restart() }
                     }
-                    ActionButton(title: "Play again", icon: "arrow.counterclockwise") { model.restart() }
                 } else if model.phase == .paused {
                     ActionButton(title: "Continue", icon: "play.fill", primary: true) { model.resume() }
                     ActionButton(
@@ -130,7 +145,7 @@ struct GameScreen: View {
                         .accessibilityIdentifier("retryOneHeart")
                     }
                 }
-                if !(model.phase == .won && model.level.id >= LevelRepository.count) {
+                if !(model.phase == .won && (model.isReplay || model.level.id >= LevelRepository.count)) {
                     Button("Main menu") { state.menu() }.font(.system(size: 16, weight: .semibold)).foregroundColor(GameStyle.muted).padding(10)
                 }
             }.foregroundColor(GameStyle.ink).padding(26).background(GameStyle.panel, in: RoundedRectangle(cornerRadius: 28)).padding(24)

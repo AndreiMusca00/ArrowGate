@@ -7,7 +7,11 @@ enum HomeScreen { case menu, journey, gallery }
 final class AppState: ObservableObject {
     @Published var game: GameViewModel?
     @Published private(set) var homeScreen: HomeScreen = .menu
+    @Published private(set) var selectedReplayLevel: Int?
     let progress: ProgressStore
+
+    var homeLevelNumber: Int { selectedReplayLevel ?? progress.unlocked }
+
     init() {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
@@ -52,11 +56,35 @@ final class AppState: ObservableObject {
             hintDelay = Double(ProcessInfo.processInfo.arguments[index + 1]) ?? 5
         }
         #endif
-        let id = number ?? progress.unlocked
+        let id = number ?? homeLevelNumber
         let level = progress.savedLevels.first { $0.id == id }?.definition ?? LevelRepository.level(id)
-        game = GameViewModel(level: level, store: progress, timeLimit: limit, idleHintDelay: hintDelay)
+        let replay = progress.completedLevels.contains(id)
+        game = GameViewModel(
+            level: level,
+            store: progress,
+            isReplay: replay,
+            timeLimit: limit,
+            idleHintDelay: hintDelay
+        )
     }
-    func menu() { game = nil; homeScreen = .menu }
+
+    func selectCompletedLevel(_ number: Int) {
+        guard progress.completedLevels.contains(number) else { return }
+        selectedReplayLevel = number
+        game = nil
+        homeScreen = .menu
+    }
+
+    func attemptEnded(_ model: GameViewModel) {
+        guard game === model, model.isReplay else { return }
+        selectedReplayLevel = nil
+    }
+
+    func menu() {
+        if game?.isReplay == true { selectedReplayLevel = nil }
+        game = nil
+        homeScreen = .menu
+    }
     func showJourney() { game = nil; homeScreen = .journey }
     func showGallery() { game = nil; homeScreen = .gallery }
     func show(_ screen: HomeScreen) { game = nil; homeScreen = screen }

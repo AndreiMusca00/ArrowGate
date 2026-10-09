@@ -43,6 +43,12 @@ struct MenuView: View {
     @EnvironmentObject private var state: AppState
     @ObservedObject var store: ProgressStore
     @State private var settings = false
+
+    private var playLevel: LevelDefinition {
+        let id = state.homeLevelNumber
+        return store.savedLevels.first { $0.id == id }?.definition ?? LevelRepository.level(id)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack { Text("A LITTLE ORDER. A BIG ESCAPE.").font(.system(size: 10, weight: .bold)).tracking(1.4).foregroundColor(GameStyle.muted)
@@ -65,9 +71,7 @@ struct MenuView: View {
             Text("Clear a path. Match the color.").font(.system(size: 15, design: .rounded))
                 .foregroundColor(GameStyle.muted).padding(.top, 8)
             Spacer(minLength: 16)
-            ActionButton(title: "Level \(store.unlocked)", icon: "play.fill", primary: true) { state.play() }
-                .accessibilityLabel("Level \(store.unlocked)")
-                .accessibilityIdentifier("play")
+            HomePlayButton(level: playLevel) { state.play() }
             Spacer(minLength: 20)
         }.foregroundColor(GameStyle.ink).padding(.horizontal, 28).padding(.vertical, 16)
             .sheet(isPresented: $settings) { SettingsView(store: store) }

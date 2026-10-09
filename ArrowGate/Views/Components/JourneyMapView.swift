@@ -19,13 +19,37 @@ struct JourneyMapView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            ZStack(alignment: .topLeading) {
-                chapterBackgrounds(width: geometry.size.width)
-                journeyLine(width: geometry.size.width)
-                levelNodes(width: geometry.size.width)
+            if #available(iOS 17.0, *) {
+                mapContent(width: geometry.size.width)
+                    .scrollTargetLayout()
+            } else {
+                mapContent(width: geometry.size.width)
             }
         }
         .frame(height: totalHeight)
+    }
+
+    private func mapContent(width: CGFloat) -> some View {
+        ZStack(alignment: .topLeading) {
+            chapterBackgrounds(width: width)
+            journeyLine(width: width)
+            scrollAnchors(width: width)
+            levelNodes(width: width)
+        }
+    }
+
+    @ViewBuilder
+    private func scrollAnchors(width: CGFloat) -> some View {
+        ForEach(LevelRepository.levels) { level in
+            Color.clear
+                .frame(width: 2, height: 2)
+                .position(
+                    x: width / 2 + xOffset(for: level.id),
+                    y: yPosition(for: level.id)
+                )
+                .id("journey-level-\(level.id)")
+                .accessibilityHidden(true)
+        }
     }
 
     @ViewBuilder
@@ -80,7 +104,6 @@ struct JourneyMapView: View {
                 onSelectLevel(level)
             }
             .position(x: width / 2 + xOffset(for: level.id), y: yPosition(for: level.id))
-            .id(level.id)
 
             if let reward = level.completionReward {
                 LevelMilestoneBadge(

@@ -6,6 +6,7 @@ enum GamePhase { case playing, paused, won, lost }
 enum LossReason { case hearts, timeout }
 final class GameViewModel: ObservableObject {
     let level: LevelDefinition
+    let isReplay: Bool
     let scene: GameScene
     let timeLimit: TimeInterval
     @Published private(set) var remaining: [ArrowDefinition]
@@ -35,10 +36,10 @@ final class GameViewModel: ObservableObject {
     var canRequestHint: Bool { phase == .playing && !remaining.isEmpty && (hintLimit.map { hintsUsed < $0 } ?? true) }
     var hasTimeLimit: Bool { timeLimit > 0 }
     var secondsRemaining: TimeInterval { max(0, timeLimit - elapsed) }
-    init(level: LevelDefinition, store: ProgressStore, hintLimit: Int? = nil,
+    init(level: LevelDefinition, store: ProgressStore, isReplay: Bool = false, hintLimit: Int? = nil,
          timeLimit: TimeInterval? = nil, idleHintDelay: TimeInterval = 5) {
         self.hintLimit = hintLimit; self.idleHintDelay = idleHintDelay
-        self.level = level; self.store = store
+        self.level = level; self.isReplay = isReplay; self.store = store
         hintBalance = store.hints; reserveLifeBalance = store.reserveLives
         self.timeLimit = timeLimit ?? level.timeLimit
         remaining = level.arrows; feedback = AudioHapticsManager(store: store)
