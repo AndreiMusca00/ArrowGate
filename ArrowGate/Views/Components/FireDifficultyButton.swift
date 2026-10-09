@@ -461,7 +461,9 @@ private final class FireParticleScene: SKScene {
         emitter.particleAlpha = 0.94
         emitter.particleAlphaRange = 0.12
         emitter.particleAlphaSpeed = -0.72
-        emitter.particleColor = UIColor(red: 1.0, green: 0.76, blue: 0.18, alpha: 1)
+        emitter.particleColor = settings.difficulty == .veryHard
+            ? UIColor(red: 1.0, green: 0.18, blue: 0.10, alpha: 1)
+            : UIColor(red: 1.0, green: 0.62, blue: 0.08, alpha: 1)
         emitter.particleColorBlendFactor = 1
         addChild(emitter)
     }

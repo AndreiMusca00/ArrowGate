@@ -223,22 +223,39 @@ struct HomePlayButton: View {
     }
 
     private var homeLabel: some View {
-        HStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.15))
-                    .frame(width: 30, height: 30)
+        VStack(spacing: difficultyLabel == nil ? 0 : 2) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.15))
+                        .frame(width: 30, height: 30)
 
-                Image(systemName: "play.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .offset(x: 1)
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .offset(x: 1)
+                }
+                Text("Level \(level.id)")
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
             }
-            Text("Level \(level.id)")
-                .font(.system(size: 17, weight: .bold, design: .rounded))
 
+            if let difficultyLabel {
+                Text(difficultyLabel)
+                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                    .tracking(1.15)
+                    .opacity(0.66)
+            }
         }
         .foregroundColor(.white)
         .padding(.horizontal, 12)
+    }
+
+    private var difficultyLabel: String? {
+        switch level.difficulty {
+        case .hard: return "HARD"
+        case .veryHard: return "VERY HARD"
+        case .nightmare: return "NIGHTMARE"
+        default: return nil
+        }
     }
 
     private var buttonShadow: Color {
@@ -282,13 +299,16 @@ private struct StaticDifficultyAura: View {
     var body: some View {
         switch difficulty {
         case .hard:
-            GoldenStarAura(time: 0.35, nodeDiameter: nodeDiameter)
-        case .veryHard:
-            RisingFlameAura(
+            JourneySparkRingAura(
                 time: 0.35,
                 nodeDiameter: nodeDiameter,
-                palette: .blood,
-                thickness: 0.66
+                difficulty: .hard
+            )
+        case .veryHard:
+            JourneySparkRingAura(
+                time: 0.35,
+                nodeDiameter: nodeDiameter,
+                difficulty: .veryHard
             )
         case .nightmare:
             RisingFlameAura(
@@ -323,15 +343,18 @@ private struct AnimatedDifficultyAura: View {
     }
 
     private var hardEnergy: some View {
-        GoldenStarAura(time: time, nodeDiameter: nodeDiameter)
+        JourneySparkRingAura(
+            time: time,
+            nodeDiameter: nodeDiameter,
+            difficulty: .hard
+        )
     }
 
     private var bloodFlames: some View {
-        RisingFlameAura(
+        JourneySparkRingAura(
             time: time,
             nodeDiameter: nodeDiameter,
-            palette: .blood,
-            thickness: 0.66
+            difficulty: .veryHard
         )
     }
 
@@ -345,39 +368,96 @@ private struct AnimatedDifficultyAura: View {
     }
 }
 
-private struct GoldenStarAura: View {
+private struct JourneySparkRingAura: View {
     let time: TimeInterval
     let nodeDiameter: CGFloat
+    let difficulty: LevelDifficulty
 
-    private let gold = Color(red: 0.96, green: 0.64, blue: 0.04)
-    private let paleGold = Color(red: 1.00, green: 0.84, blue: 0.24)
+    private var isVeryHard: Bool { difficulty == .veryHard }
+    private var primary: Color {
+        isVeryHard
+            ? Color(red: 0.76, green: 0.025, blue: 0.075)
+            : Color(red: 0.96, green: 0.43, blue: 0.025)
+    }
+    private var hot: Color {
+        isVeryHard
+            ? Color(red: 1.0, green: 0.16, blue: 0.12)
+            : Color(red: 1.0, green: 0.67, blue: 0.08)
+    }
 
     var body: some View {
-        let orbitRadius = nodeDiameter / 2 + 7
-        let frameSide = nodeDiameter + 34
+        let frameSide = nodeDiameter + 50
 
-        ZStack {
-            ForEach(0..<10, id: \.self) { index in
-                let angle = Double(index) / 10 * Double.pi * 2
-                let pulse = 0.5 + 0.5 * sin(time * 4.0 + Double(index) * 1.65)
-                let drift = CGFloat(sin(time * 2.1 + Double(index))) * 1.3
+        Canvas { context, size in
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            let ringRadius = nodeDiameter / 2 + 4.5
+            let ringRect = CGRect(
+                x: center.x - ringRadius,
+                y: center.y - ringRadius,
+                width: ringRadius * 2,
+                height: ringRadius * 2
+            )
+            let ring = Path(ellipseIn: ringRect)
 
-                Image(systemName: index.isMultiple(of: 3) ? "sparkle" : "star.fill")
-                    .font(.system(
-                        size: CGFloat(index.isMultiple(of: 3) ? 8.5 : 5.5) + CGFloat(pulse) * 1.5,
-                        weight: .bold
-                    ))
-                    .foregroundColor(index.isMultiple(of: 2) ? paleGold : gold)
-                    .scaleEffect(0.72 + CGFloat(pulse) * 0.34)
-                    .opacity(0.58 + pulse * 0.42)
-                    .offset(
-                        x: CGFloat(cos(angle)) * (orbitRadius + drift),
-                        y: CGFloat(sin(angle)) * (orbitRadius + drift)
+            context.drawLayer { glow in
+                glow.addFilter(.blur(radius: isVeryHard ? 5.5 : 3.5))
+                glow.stroke(
+                    ring,
+                    with: .color(primary.opacity(isVeryHard ? 0.55 : 0.38)),
+                    lineWidth: isVeryHard ? 3.2 : 2.2
+                )
+            }
+            context.stroke(
+                ring,
+                with: .color(primary.opacity(isVeryHard ? 0.82 : 0.68)),
+                lineWidth: isVeryHard ? 1.8 : 1.25
+            )
+
+            let count = isVeryHard ? 18 : 10
+            for index in 0..<count {
+                let seed = Double(index + 1)
+                let speed = isVeryHard ? 0.86 : 0.62
+                let rawProgress = time * speed + seed * 0.217
+                let progress = rawProgress - floor(rawProgress)
+                let angle = seed / Double(count) * Double.pi * 2
+                    + sin(time * 0.38 + seed) * 0.035
+                let outward = CGFloat(2.5 + progress * (isVeryHard ? 10 : 7))
+                let rise = CGFloat(progress) * (isVeryHard ? 11 : 7)
+                let shimmer = 0.5 + 0.5 * sin(time * 5.2 + seed * 2.3)
+                let opacity = sin(progress * .pi) * (0.52 + shimmer * 0.48)
+                let particleSize = CGFloat(isVeryHard ? 1.8 : 1.35)
+                    + CGFloat(shimmer) * (isVeryHard ? 1.8 : 1.15)
+                let particleCenter = CGPoint(
+                    x: center.x + CGFloat(cos(angle)) * (ringRadius + outward)
+                        + CGFloat(sin(time * 2.4 + seed)) * 1.1,
+                    y: center.y + CGFloat(sin(angle)) * (ringRadius + outward) - rise
+                )
+
+                context.drawLayer { sparkGlow in
+                    sparkGlow.addFilter(.blur(radius: isVeryHard ? 2.2 : 1.4))
+                    sparkGlow.fill(
+                        sparkPath(center: particleCenter, size: particleSize * 1.8),
+                        with: .color(primary.opacity(opacity * 0.52))
                     )
+                }
+                context.fill(
+                    sparkPath(center: particleCenter, size: particleSize),
+                    with: .color((index.isMultiple(of: 3) ? hot : primary).opacity(opacity))
+                )
             }
         }
         .frame(width: frameSide, height: frameSide)
         .accessibilityHidden(true)
+    }
+
+    private func sparkPath(center: CGPoint, size: CGFloat) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: center.x, y: center.y - size))
+        path.addLine(to: CGPoint(x: center.x + size * 0.55, y: center.y))
+        path.addLine(to: CGPoint(x: center.x, y: center.y + size))
+        path.addLine(to: CGPoint(x: center.x - size * 0.55, y: center.y))
+        path.closeSubpath()
+        return path
     }
 }
 
@@ -770,19 +850,30 @@ struct LevelMilestoneBadge: View {
     private var icon: String { reward.kind == .life ? "heart.fill" : "lightbulb.fill" }
     private var color: Color { reward.kind == .life ? GameStyle.color(.red) : GameStyle.color(.yellow) }
 
+    @ViewBuilder
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: claimed ? "checkmark.circle.fill" : icon)
-                .foregroundColor(claimed ? GameStyle.accent : color)
-            Text(claimed ? "CLAIMED" : "+\(reward.amount)")
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(GameStyle.muted)
+        if claimed {
+            Image(systemName: "checkmark")
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundColor(GameStyle.accent)
+                .frame(width: 34, height: 34)
+                .background(Color.white.opacity(0.92), in: Circle())
+                .overlay(Circle().stroke(GameStyle.accent.opacity(0.18), lineWidth: 1.2))
+                .accessibilityLabel("Level \(level) reward, claimed")
+        } else {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .foregroundColor(color)
+                Text("+\(reward.amount)")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(GameStyle.muted)
+            }
+            .padding(.horizontal, 11)
+            .frame(height: 34)
+            .background(Color.white.opacity(0.90), in: Capsule())
+            .overlay(Capsule().stroke(color.opacity(0.16)))
+            .accessibilityLabel("Level \(level) reward, \(reward.kind.rawValue)")
         }
-        .padding(.horizontal, 11)
-        .frame(height: 34)
-        .background(Color.white.opacity(0.90), in: Capsule())
-        .overlay(Capsule().stroke(color.opacity(0.16)))
-        .accessibilityLabel("Level \(level) reward, \(claimed ? "claimed" : reward.kind.rawValue)")
     }
 }
 
