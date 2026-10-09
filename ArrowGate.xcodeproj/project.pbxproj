@@ -201,6 +201,7 @@
 				DEVELOPMENT_TEAM = XGNLX463UW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ArrowGate/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Pictarrow;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -233,6 +234,7 @@
 				DEVELOPMENT_TEAM = XGNLX463UW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ArrowGate/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Pictarrow;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

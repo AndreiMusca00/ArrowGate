@@ -66,7 +66,7 @@ struct MenuView: View {
                         .rotationEffect(.degrees(index.isMultiple(of: 2) ? -8 : 8))
                 }
             }.padding(.bottom, 18).accessibilityHidden(true)
-            Text("ARROW GATE").font(.system(size: 44, weight: .bold, design: .rounded)).tracking(-1.5)
+            Text("PICTARROW").font(.system(size: 44, weight: .bold, design: .rounded)).tracking(-1.5)
                 .multilineTextAlignment(.center)
             Text("Clear a path. Match the color.").font(.system(size: 15, design: .rounded))
                 .foregroundColor(GameStyle.muted).padding(.top, 8)

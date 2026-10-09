@@ -78,7 +78,9 @@ final class PuzzleRulesTests: XCTestCase {
             XCTAssertNotNil(level.rewardName)
             XCTAssertNotNil(LevelValidator.solution(for: level))
         }
-        XCTAssertEqual(LevelRepository.level(1).activeCells?.count, 69)
+        XCTAssertEqual(LevelRepository.level(1).size, 30)
+        XCTAssertEqual(LevelRepository.level(1).height, 30)
+        XCTAssertEqual(LevelRepository.level(1).activeCells?.count, 688)
         XCTAssertEqual(LevelRepository.level(2).activeCells?.count, 61)
         XCTAssertEqual(LevelRepository.level(40).size, 15)
         XCTAssertTrue(LevelRepository.levels.prefix(20).allSatisfy { $0.chapterID == 1 })
@@ -113,7 +115,8 @@ final class PuzzleRulesTests: XCTestCase {
             XCTAssertEqual(PuzzleRules.evaluate(hint, remaining: level.arrows, level: level), .allowed)
         }
         let level = LevelRepository.level(1)
-        XCTAssertEqual(level.arrows.count, 19)
+        XCTAssertEqual(level.arrows.count, 72)
+        XCTAssertTrue(level.arrows.allSatisfy { $0.length >= 3 })
         XCTAssertEqual(level.completionArtwork, "SmileReward")
         XCTAssertEqual(Set(level.arrows.map(\.color)), Set([.yellow, .brown]))
         XCTAssertEqual(Set(level.arrows.flatMap(\.cells)), Set(try XCTUnwrap(level.activeCells)))

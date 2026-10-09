@@ -220,9 +220,9 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         var body = Array(local.dropLast())
         // Preserve the final corner and append a dedicated shaft endpoint. Replacing
         // the last corner would connect the preceding turn diagonally to the head.
-        // The round line cap reaches slightly into the triangle base without showing
-        // through its narrowing centre.
-        let shaftEnd = CGPoint(x: base.x - dx * 0.75, y: base.y - dy * 0.75)
+        // The shaft uses a flat leading cap and ends just inside the triangle base.
+        // This hides the join without letting the segment project toward the tip.
+        let shaftEnd = CGPoint(x: base.x + dx * 0.45, y: base.y + dy * 0.45)
         body.append(shaftEnd)
         return ArrowPaths(body: body, tip: tip, direction: arrow.direction, showsHead: true)
     }
@@ -260,9 +260,6 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
             if name != "body", ink.isHidden { continue }
             layoutArrowInk(ink, paths: paths)
         }
-        node.childNode(withName: "warningBadge")?.position = CGPoint(
-            x: CGFloat(arrow.direction.dx) * (CGFloat(travel) * GameStyle.cellSize - 1) + CGFloat(arrow.direction.dy) * 7,
-            y: CGFloat(arrow.direction.dy) * (CGFloat(travel) * GameStyle.cellSize - 1) - CGFloat(arrow.direction.dx) * 7)
     }
     private func arrowInk(name: String, paths: ArrowPaths, color: UIColor,
                           width: CGFloat) -> SKNode {
@@ -337,8 +334,13 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
             cg.translateBy(x: -bounds.minX, y: bounds.maxY)
             cg.scaleBy(x: 1, y: -1)
             cg.addPath(centreline)
-            cg.setLineWidth(width); cg.setLineCap(.round); cg.setLineJoin(.round)
+            cg.setLineWidth(width); cg.setLineCap(.butt); cg.setLineJoin(.round)
             cg.setStrokeColor(color.cgColor); cg.strokePath()
+            // The tail stays rounded, while the shaft's leading edge remains flat
+            // beneath the filled head instead of projecting through its tip.
+            cg.setFillColor(color.cgColor)
+            cg.fillEllipse(in: CGRect(x: first.x - width / 2, y: first.y - width / 2,
+                                      width: width, height: width))
         }
         let texture = SKTexture(cgImage: image.cgImage!); texture.filteringMode = .linear
         line.texture = texture; line.size = bounds.size
@@ -353,9 +355,9 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         motions[arrow.id] = ArrowMotion(arrow)
         let paths = arrowPaths(arrow)
         let warning = arrowInk(name: "warning", paths: paths,
-                               color: UIColor(red: 1, green: 0.23, blue: 0.29, alpha: 0.88),
-                               width: 4.6)
-        warning.zPosition = 1; warning.isHidden = true; node.addChild(warning)
+                               color: UIColor(red: 0.98, green: 0.16, blue: 0.22, alpha: 1),
+                               width: 2.35)
+        warning.zPosition = 4; warning.alpha = 0; warning.isHidden = true; node.addChild(warning)
         let glow = arrowInk(name: "hint", paths: paths,
                             color: GameStyle.uiColor(arrow.color).withAlphaComponent(0.22),
                             width: 5)
@@ -364,20 +366,36 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         let body = arrowInk(name: "body", paths: paths, color: GameStyle.uiColor(arrow.color),
                             width: 2.2)
         body.zPosition = 3; node.addChild(body)
-        let marker = SKShapeNode(circleOfRadius: 3); marker.name = "warningBadge"; marker.zPosition = 4
-        marker.position = CGPoint(x: -1 * CGFloat(arrow.direction.dx) + 7 * CGFloat(arrow.direction.dy),
-                                  y: -1 * CGFloat(arrow.direction.dy) - 7 * CGFloat(arrow.direction.dx)); marker.fillColor = GameStyle.sceneBackground
-        marker.strokeColor = .systemRed; marker.lineWidth = 0.9; marker.isHidden = true
-        let label = SKLabelNode(text: "!"); label.fontName = "AvenirNext-Bold"; label.fontSize = 5
-        label.fontColor = .systemRed; label.zPosition = 1; label.verticalAlignmentMode = .center; label.zRotation = -node.zRotation; marker.addChild(label); node.addChild(marker)
         arrowLayer.addChild(node); arrowNodes[arrow.id] = node
     }
     func markBlocked(_ ids: Set<Int>) {
+        let previouslyWarned = warned
         warned = ids
         for (id, node) in arrowNodes {
             let isWarned = ids.contains(id)
-            node.childNode(withName: "warning")?.isHidden = !isWarned
-            node.childNode(withName: "warningBadge")?.isHidden = !isWarned
+            guard let warning = node.childNode(withName: "warning") else { continue }
+            warning.removeAction(forKey: "warningFade")
+            if isWarned {
+                warning.isHidden = false
+                if !previouslyWarned.contains(id) {
+                    warning.alpha = 0
+                    let fade = SKAction.fadeAlpha(to: 0.94, duration: 0.22)
+                    fade.timingMode = .easeInEaseOut
+                    warning.run(fade, withKey: "warningFade")
+                } else {
+                    warning.alpha = 0.94
+                }
+            } else if previouslyWarned.contains(id), !warning.isHidden {
+                let fade = SKAction.fadeOut(withDuration: 0.14)
+                fade.timingMode = .easeInEaseOut
+                warning.run(.sequence([fade, .run { [weak warning] in
+                    warning?.isHidden = true
+                    warning?.alpha = 0
+                }]), withKey: "warningFade")
+            } else {
+                warning.isHidden = true
+                warning.alpha = 0
+            }
             if isWarned, let arrow = level.arrows.first(where: { $0.id == id }) {
                 render(arrow, node: node, travel: travels[id] ?? 0)
             }
@@ -423,12 +441,12 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         // The head reaches the edge first. Keep advancing by the complete ribbon
         // length so every remaining segment visibly feeds into the impact point.
         let travel = max(shatterEnd + 0.45, paintingEnd)
-        let duration = max(GameStyle.exitDuration, 0.18 + (travel - start) * 0.045) * 1.20
+        let duration = max(GameStyle.exitDuration, 0.16 + (travel - start) * 0.038)
         var nextShatter = contact
         var impactLine: SKShapeNode?
         let slide = SKAction.customAction(withDuration: duration) { [weak self] node, elapsed in
             guard let self else { return }
-            let distance = start + ArrowMotion.slideProgress(min(1, Double(elapsed) / duration)) * (travel - start)
+            let distance = start + ArrowMotion.takeoffProgress(min(1, Double(elapsed) / duration)) * (travel - start)
             self.render(arrow, node: node, travel: distance,
                         clippingAt: distance >= contact ? impact.point : nil)
             while nextPaintEvent < paintEvents.count, distance >= paintEvents[nextPaintEvent].distance {

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Pictarrow app icon source artwork</title>
+  <desc>Three flat groups prepared for Apple Icon Composer: background, revealed mosaic, and arrow.</desc>
+
+  <g id="background">
+    <rect width="1024" height="1024" fill="#FAF7F0"/>
+  </g>
+
+  <g id="mosaic">
+    <rect x="112" y="646" width="108" height="108" rx="22" fill="#20AAA6"/>
+    <rect x="234" y="646" width="108" height="108" rx="22" fill="#7E68A8"/>
+    <rect x="356" y="646" width="108" height="108" rx="22" fill="#F45F59"/>
+    <rect x="112" y="768" width="108" height="108" rx="22" fill="#F7AE32"/>
+    <rect x="234" y="768" width="108" height="108" rx="22" fill="#20AAA6"/>
+    <rect x="356" y="768" width="108" height="108" rx="22" fill="#F45F59"/>
+    <rect x="112" y="890" width="108" height="108" rx="22" fill="#F7AE32"/>
+  </g>
+
+  <g id="arrow" fill="#087A78">
+    <path d="M430 700 H500 V528 C500 472 544 428 600 428 H738 C794 428 838 384 838 328 V268"
+          fill="none" stroke="#087A78" stroke-width="126" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M838 112 C850 112 861 117 870 126 L970 230 C990 251 976 286 946 286 H730 C700 286 686 251 706 230 L806 126 C815 117 826 112 838 112 Z"/>
+  </g>
+</svg>

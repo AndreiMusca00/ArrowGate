@@ -81,4 +81,9 @@ struct ArrowMotion {
     }
     /// Ease in gently and retain momentum all the way to the visible edge.
     static func slideProgress(_ t: Double) -> Double { t * t * (2 - t) }
+
+    /// Starts with the same soft lift as a slide, then keeps accelerating like takeoff.
+    static func takeoffProgress(_ t: Double) -> Double {
+        pow(min(1, max(0, t)), 1.45)
+    }
 }
