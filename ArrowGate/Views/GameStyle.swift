@@ -13,11 +13,17 @@ enum GameStyle {
     }
     static let rejectDuration = 0.18
     static let selectionScale: CGFloat = 1.04
+    static let arrowWidth: CGFloat = 2.2
     // The level coordinate system uses the visible guide-dot spacing directly.
     // Keeping this compact lets authored levels place arrows on adjacent dots.
-    static let cellSize: CGFloat = 15
+    static let cellSize: CGFloat = 14
     static let worldMargin: CGFloat = 44
-    static let maximumZoom: CGFloat = 1.6
+    // Camera limits are authored in visible grid columns so they remain predictable
+    // on every board size. The portrait viewport naturally shows roughly 25 rows
+    // up close and 40–45 rows when fully zoomed out.
+    static let closestVisibleColumns: CGFloat = 15
+    static let furthestVisibleColumns: CGFloat = 28
+    static let cameraHorizontalInset: CGFloat = 24
     static let confettiCount = 10
     static let confettiDuration = 0.26
     static let sceneSize = CGSize(width: 390, height: 700)

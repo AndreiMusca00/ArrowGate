@@ -9,6 +9,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
     private var travels: [Int: Double] = [:]
     private var motions: [Int: ArrowMotion] = [:]
     private var arrowHeadTextures: [String: SKTexture] = [:]
+    private var tapRippleTextures: [String: SKTexture] = [:]
     private var guideDots: [Cell: SKShapeNode] = [:]
     private var targetColors: [Cell: ArrowColor]?
     private var exiting: Set<Int> = []
@@ -24,9 +25,12 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
     private var paintedCells: [Cell: PaintedMark] = [:]
     private var paintSequence = 0
     private var fragmentLayer = SKNode()
+    private var tapFeedbackLayer = SKNode()
     private var tutorial = SKNode()
     private var gestures: [UIGestureRecognizer] = []
-    private var fitScale: CGFloat = 1
+    private var closestCameraScale: CGFloat = 1
+    private var furthestCameraScale: CGFloat = 1
+    private var initialCameraScale: CGFloat = 1
     private var pinchStartScale: CGFloat = 1
     private(set) var isIntroducing = false
     private var needsIntroduction = true
@@ -43,7 +47,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         CGRect(x: -GameStyle.worldMargin, y: -GameStyle.worldMargin,
                width: boardWidth + GameStyle.worldMargin * 2, height: boardHeight + GameStyle.worldMargin * 2)
     }
-    var zoomFactor: CGFloat { fitScale / boardCamera.xScale }
+    var zoomFactor: CGFloat { furthestCameraScale / boardCamera.xScale }
     var accessibilitySummary: String {
         guard level != nil else { return "Puzzle board" }
         return "Level \(level.id); arrows \(arrowNodes.count - exiting.count); pending \(exiting.count); warnings \(warned.count); painted \(paintedCells.count); zoom \(String(format: "%.1f", Double(zoomFactor)))"
@@ -68,6 +72,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         paintLayer.maskNode = paintMask; addChild(paintLayer)
         arrowLayer = SKNode(); arrowLayer.zPosition = 5; addChild(arrowLayer)
         fragmentLayer = SKNode(); fragmentLayer.zPosition = 7; addChild(fragmentLayer)
+        tapFeedbackLayer = SKNode(); tapFeedbackLayer.zPosition = 12; addChild(tapFeedbackLayer)
         tutorial = SKNode(); tutorial.zPosition = 15; addChild(tutorial)
         for arrow in level.arrows { drawArrow(arrow) }
         resetViewport()
@@ -102,22 +107,30 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         }
     }
     func resetViewport() {
-        guard level != nil, size.width > 24, size.height > 24 else { return }
+        guard level != nil,
+              size.width > GameStyle.cameraHorizontalInset,
+              size.height > GameStyle.cameraHorizontalInset else { return }
         boardCamera.removeAction(forKey: "introduction"); isIntroducing = false
-        fitScale = max(worldBounds.width / (size.width - 24), worldBounds.height / (size.height - 24))
-        boardCamera.setScale(fitScale)
+        let usableWidth = size.width - GameStyle.cameraHorizontalInset
+        closestCameraScale = GameStyle.closestVisibleColumns * GameStyle.cellSize / usableWidth
+        furthestCameraScale = GameStyle.furthestVisibleColumns * GameStyle.cellSize / usableWidth
+        initialCameraScale = (closestCameraScale + furthestCameraScale) / 2
+        boardCamera.setScale(furthestCameraScale)
         boardCamera.position = CGPoint(x: boardWidth / 2, y: boardHeight / 2)
         updateAccessibility()
     }
     private func introduceBoard() {
         guard needsIntroduction, view != nil else { return }
         needsIntroduction = false
-        guard !skipsIntroduction, !UIAccessibility.isReduceMotionEnabled else { return }
-        // Overview first; larger boards settle closer to the centre. The overview remains
-        // the zoom-out limit, so a player can always find every board edge again.
-        let focusZoom: CGFloat = min(1.75, max(1.15, CGFloat(max(level.size, level.height)) / 12))
+        guard !skipsIntroduction, !UIAccessibility.isReduceMotionEnabled else {
+            boardCamera.setScale(initialCameraScale)
+            clampCamera()
+            return
+        }
+        // Begin with the widest allowed overview, then settle halfway through the
+        // 15–28-column zoom range while keeping the authored board centred.
         isIntroducing = true
-        let zoom = SKAction.scale(to: fitScale / focusZoom, duration: GameStyle.introDuration)
+        let zoom = SKAction.scale(to: initialCameraScale, duration: GameStyle.introDuration)
         zoom.timingMode = .easeInEaseOut
         boardCamera.run(.sequence([.wait(forDuration: 0.25), zoom, .run { [weak self] in
             self?.isIntroducing = false; self?.clampCamera()
@@ -136,16 +149,6 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         updateAccessibility()
     }
 
-    private var cameraViewport: CGRect {
-        let halfWidth = size.width * boardCamera.xScale / 2
-        let halfHeight = size.height * boardCamera.yScale / 2
-        return CGRect(x: boardCamera.position.x - halfWidth,
-                      y: boardCamera.position.y - halfHeight,
-                      width: halfWidth * 2, height: halfHeight * 2)
-    }
-
-    private var impactInset: CGFloat { max(1.5, boardCamera.xScale * 3) }
-
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool { inputEnabled && !isPaused }
     @objc private func panBoard(_ gesture: UIPanGestureRecognizer) {
         guard inputEnabled, let view else { return }
@@ -160,7 +163,8 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         if gesture.state == .began { interruptIntroduction(); pinchStartScale = boardCamera.xScale }
         let location = gesture.location(in: view)
         let anchor = convertPoint(fromView: location)
-        boardCamera.setScale(min(fitScale, max(fitScale / GameStyle.maximumZoom, pinchStartScale / gesture.scale)))
+        boardCamera.setScale(min(furthestCameraScale,
+                                 max(closestCameraScale, pinchStartScale / gesture.scale)))
         let movedAnchor = convertPoint(fromView: location)
         boardCamera.position.x += anchor.x - movedAnchor.x
         boardCamera.position.y += anchor.y - movedAnchor.y
@@ -171,8 +175,83 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         interruptIntroduction()
         let location = convertPoint(fromView: gesture.location(in: view))
         let cell = Cell(x: Int(floor(location.x / GameStyle.cellSize)), y: Int(floor(location.y / GameStyle.cellSize)))
+        let tappedArrow = level.contains(cell) ? level.arrows.first(where: {
+            arrowNodes[$0.id] != nil && !exiting.contains($0.id) && $0.cells.contains(cell)
+        }) : nil
+        let feedbackColor = tappedArrow.map { GameStyle.uiColor($0.color) } ?? GameStyle.portalWell
+        showTapFeedback(at: location, color: feedbackColor)
         guard level.contains(cell) else { return }
-        if let arrow = level.arrows.first(where: { arrowNodes[$0.id] != nil && !exiting.contains($0.id) && $0.cells.contains(cell) }) { onTap?(arrow.id) }
+        if let tappedArrow { onTap?(tappedArrow.id) }
+    }
+    private func showTapFeedback(at point: CGPoint, color: UIColor) {
+        let feedback = SKNode()
+        feedback.position = point
+        // Counter the camera zoom so the touch indicator keeps a stable size on screen.
+        feedback.setScale(boardCamera.xScale)
+
+        let wave = SKNode()
+        wave.setScale(0.18)
+        let wash = SKSpriteNode(texture: tapRippleTexture(color: color),
+                                size: CGSize(width: 16, height: 16))
+        wave.addChild(wash)
+        let ring = SKShapeNode(circleOfRadius: 6.4)
+        ring.fillColor = .clear
+        ring.strokeColor = color.withAlphaComponent(0.42)
+        ring.lineWidth = 1.15
+        wave.addChild(ring)
+        feedback.addChild(wave)
+
+        let core = SKShapeNode(circleOfRadius: 1.45)
+        core.fillColor = color.withAlphaComponent(0.58)
+        core.strokeColor = .clear
+        feedback.addChild(core)
+        tapFeedbackLayer.addChild(feedback)
+
+        if UIAccessibility.isReduceMotionEnabled {
+            feedback.setScale(boardCamera.xScale)
+            wave.setScale(0.72)
+            feedback.run(.sequence([.fadeOut(withDuration: 0.20), .removeFromParent()]))
+            return
+        }
+
+        let expand = SKAction.scale(to: 1.9, duration: 0.34)
+        expand.timingMode = .easeOut
+        let fade = SKAction.fadeOut(withDuration: 0.27)
+        fade.timingMode = .easeOut
+        wave.run(.group([expand, .sequence([.wait(forDuration: 0.07), fade])]))
+        core.run(.sequence([
+            .scale(to: 1.14, duration: 0.07),
+            .group([.scale(to: 0.72, duration: 0.16), .fadeOut(withDuration: 0.16)])
+        ]))
+        feedback.run(.sequence([.wait(forDuration: 0.36), .removeFromParent()]))
+    }
+    private func tapRippleTexture(color: UIColor) -> SKTexture {
+        let key = color.description
+        if let texture = tapRippleTextures[key] { return texture }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 6
+        format.opaque = false
+        let size = CGSize(width: 20, height: 20)
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { renderer in
+            let cg = renderer.cgContext
+            let colors = [
+                color.withAlphaComponent(0.34).cgColor,
+                color.withAlphaComponent(0.22).cgColor,
+                color.withAlphaComponent(0.07).cgColor,
+                color.withAlphaComponent(0).cgColor
+            ] as CFArray
+            guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                            colors: colors,
+                                            locations: [0, 0.30, 0.72, 1]) else { return }
+            let centre = CGPoint(x: size.width / 2, y: size.height / 2)
+            cg.drawRadialGradient(gradient, startCenter: centre, startRadius: 0,
+                                  endCenter: centre, endRadius: size.width / 2,
+                                  options: [.drawsAfterEndLocation])
+        }
+        let texture = SKTexture(cgImage: image.cgImage!)
+        texture.filteringMode = .linear
+        tapRippleTextures[key] = texture
+        return texture
     }
     private func point(_ cell: Cell) -> CGPoint {
         CGPoint(x: (CGFloat(cell.x) + 0.5) * GameStyle.cellSize, y: (CGFloat(cell.y) + 0.5) * GameStyle.cellSize)
@@ -188,7 +267,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
                 guard level.contains(cell) else { continue }
                 let centre = CGPoint(x: origin + CGFloat(x) * GameStyle.cellSize,
                                      y: origin + CGFloat(y) * GameStyle.cellSize)
-                let dot = SKShapeNode(circleOfRadius: 0.6)
+                let dot = SKShapeNode(circleOfRadius: GameStyle.arrowWidth / 2)
                 dot.position = centre
                 dot.fillColor = GameStyle.guideDot
                 dot.strokeColor = .clear
@@ -356,7 +435,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         let paths = arrowPaths(arrow)
         let warning = arrowInk(name: "warning", paths: paths,
                                color: UIColor(red: 0.98, green: 0.16, blue: 0.22, alpha: 1),
-                               width: 2.35)
+                               width: GameStyle.arrowWidth)
         warning.zPosition = 4; warning.alpha = 0; warning.isHidden = true; node.addChild(warning)
         let glow = arrowInk(name: "hint", paths: paths,
                             color: GameStyle.uiColor(arrow.color).withAlphaComponent(0.22),
@@ -364,7 +443,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         glow.zPosition = 2; glow.isHidden = true; node.addChild(glow)
         // The shaft overlaps the filled head, so SpriteKit never exposes their join.
         let body = arrowInk(name: "body", paths: paths, color: GameStyle.uiColor(arrow.color),
-                            width: 2.2)
+                            width: GameStyle.arrowWidth)
         body.zPosition = 3; node.addChild(body)
         arrowLayer.addChild(node); arrowNodes[arrow.id] = node
     }
@@ -374,25 +453,32 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         for (id, node) in arrowNodes {
             let isWarned = ids.contains(id)
             guard let warning = node.childNode(withName: "warning") else { continue }
-            warning.removeAction(forKey: "warningFade")
             if isWarned {
                 warning.isHidden = false
                 if !previouslyWarned.contains(id) {
+                    warning.removeAction(forKey: "warningState")
+                    warning.setScale(1)
                     warning.alpha = 0
-                    let fade = SKAction.fadeAlpha(to: 0.94, duration: 0.22)
+                    let fade = SKAction.fadeAlpha(to: 1, duration: 0.22)
                     fade.timingMode = .easeInEaseOut
-                    warning.run(fade, withKey: "warningFade")
+                    warning.run(fade, withKey: "warningState")
                 } else {
-                    warning.alpha = 0.94
+                    warning.removeAction(forKey: "warningState")
+                    warning.setScale(1)
+                    warning.alpha = 1
                 }
             } else if previouslyWarned.contains(id), !warning.isHidden {
+                warning.removeAction(forKey: "warningState")
+                warning.setScale(1)
                 let fade = SKAction.fadeOut(withDuration: 0.14)
                 fade.timingMode = .easeInEaseOut
                 warning.run(.sequence([fade, .run { [weak warning] in
                     warning?.isHidden = true
                     warning?.alpha = 0
-                }]), withKey: "warningFade")
+                }]), withKey: "warningState")
             } else {
+                warning.removeAction(forKey: "warningState")
+                warning.setScale(1)
                 warning.isHidden = true
                 warning.alpha = 0
             }
@@ -430,20 +516,18 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         let start = travels[arrow.id] ?? 0
         let paintEvents = paintEvents(for: arrow)
         var nextPaintEvent = paintEvents.firstIndex(where: { $0.distance >= start }) ?? paintEvents.count
-        let impact = edgeImpact(for: arrow)
+        let impact = puzzleExit(for: arrow)
         let contact = max(start, impact.travel)
         let ribbonLength = motions[arrow.id]?.length ?? Double(max(1, arrow.cells.count))
         let shatterEnd = contact + ribbonLength
-        // Painting always finishes across the board. On a future board larger than
-        // the viewport, the arrow can shatter at the screen edge while its trail
-        // continues painting the cells that it has logically cleared.
+        // Painting and shattering now share the puzzle's logical boundary, so the
+        // effect stays correct while the camera is zoomed or moving.
         let paintingEnd = (paintEvents.last?.distance ?? contact) + 0.08
-        // The head reaches the edge first. Keep advancing by the complete ribbon
-        // length so every remaining segment visibly feeds into the impact point.
+        // The head leaves the puzzle first. Keep advancing by the complete ribbon
+        // length so every remaining segment visibly breaks at that same boundary.
         let travel = max(shatterEnd + 0.45, paintingEnd)
         let duration = max(GameStyle.exitDuration, 0.16 + (travel - start) * 0.038)
         var nextShatter = contact
-        var impactLine: SKShapeNode?
         let slide = SKAction.customAction(withDuration: duration) { [weak self] node, elapsed in
             guard let self else { return }
             let distance = start + ArrowMotion.takeoffProgress(min(1, Double(elapsed) / duration)) * (travel - start)
@@ -453,28 +537,16 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
                 self.paint(paintEvents[nextPaintEvent].cell, color: arrow.color)
                 nextPaintEvent += 1
             }
-            // A stream of small bursts follows the whole shaft. The arrow itself
-            // stays vector-sharp; its centreline is clipped geometrically at the
-            // impact coordinate instead of rasterizing the entire arrow layer.
+            // A stream of small bursts consumes the shaft as it crosses the board
+            // boundary. No artificial wall is drawn at the exit point.
             while distance >= nextShatter, nextShatter <= shatterEnd {
-                if impactLine == nil {
-                    impactLine = self.makeImpactLine(at: impact.point, direction: direction,
-                                                     color: arrow.color)
-                }
-                self.edgeShatter(at: impact.point, direction: direction, color: arrow.color,
-                                 particleCount: nextShatter == contact ? GameStyle.confettiCount : 3)
+                self.boundaryShatter(at: impact.point, direction: direction, color: arrow.color,
+                                     particleCount: nextShatter == contact ? GameStyle.confettiCount : 3)
                 nextShatter += 0.70
             }
             node.alpha = 1
         }
-        let finishImpact = SKAction.run {
-            impactLine?.run(.sequence([
-                .group([.fadeOut(withDuration: GameStyle.confettiDuration),
-                        .scale(to: 0.72, duration: GameStyle.confettiDuration)]),
-                .removeFromParent()
-            ]))
-        }
-        node.run(.sequence([slide, finishImpact, .wait(forDuration: GameStyle.confettiDuration), .run { [weak self, weak node] in
+        node.run(.sequence([slide, .wait(forDuration: GameStyle.confettiDuration), .run { [weak self, weak node] in
             guard let self else { return }
             node?.removeFromParent()
             self.arrowNodes.removeValue(forKey: arrow.id); self.exiting.remove(arrow.id); self.warned.remove(arrow.id)
@@ -497,27 +569,29 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         }
         return events
     }
-    private func edgeImpact(for arrow: ArrowDefinition) -> (travel: Double, point: CGPoint) {
-        // Keep the impact just inside the clipped SpriteView so the complete burst
-        // remains visible instead of being cut in half.
-        let visible = cameraViewport.insetBy(dx: impactInset, dy: impactInset)
+    private func puzzleExit(for arrow: ArrowDefinition) -> (travel: Double, point: CGPoint) {
+        // Follow the same active-cell geometry used by the puzzle rules. This also
+        // supports triangular and otherwise irregular boards.
+        var lastCell = arrow.head
+        var nextCell = lastCell.moved(arrow.direction)
+        while level.contains(nextCell) {
+            lastCell = nextCell
+            nextCell = nextCell.moved(arrow.direction)
+        }
+
         let origin = point(arrow.head)
         let initialTip = CGPoint(x: origin.x + CGFloat(arrow.direction.dx) * GameStyle.cellSize * 0.30,
                                  y: origin.y + CGFloat(arrow.direction.dy) * GameStyle.cellSize * 0.30)
-        let edge: CGFloat
-        switch arrow.direction {
-        case .right: edge = visible.maxX
-        case .up: edge = visible.maxY
-        case .left: edge = visible.minX
-        case .down: edge = visible.minY
-        }
+        let lastCentre = point(lastCell)
+        let boundary = CGPoint(
+            x: lastCentre.x + CGFloat(arrow.direction.dx) * GameStyle.cellSize / 2,
+            y: lastCentre.y + CGFloat(arrow.direction.dy) * GameStyle.cellSize / 2
+        )
         let along = arrow.direction.dx == 0
-            ? (edge - initialTip.y) * CGFloat(arrow.direction.dy)
-            : (edge - initialTip.x) * CGFloat(arrow.direction.dx)
+            ? (boundary.y - initialTip.y) * CGFloat(arrow.direction.dy)
+            : (boundary.x - initialTip.x) * CGFloat(arrow.direction.dx)
         let travel = max(0, Double(along / GameStyle.cellSize))
-        let point = CGPoint(x: initialTip.x + CGFloat(arrow.direction.dx) * CGFloat(travel) * GameStyle.cellSize,
-                            y: initialTip.y + CGFloat(arrow.direction.dy) * CGFloat(travel) * GameStyle.cellSize)
-        return (travel, point)
+        return (travel, boundary)
     }
     private func paint(_ cell: Cell, color: ArrowColor) {
         guard level.contains(cell), let dot = guideDots[cell] else { return }
@@ -607,7 +681,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
                                 .scale(to: 1, duration: 0.08)]), withKey: "finalFill")
         }
         let zoomOut = SKAction.group([
-            .scale(to: fitScale, duration: zoomDuration),
+            .scale(to: furthestCameraScale, duration: zoomDuration),
             .move(to: centre, duration: zoomDuration)
         ])
         zoomOut.timingMode = .easeInEaseOut
@@ -713,25 +787,10 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
                                    .run(completion)]),
                         withKey: "paintingReveal")
     }
-    private func makeImpactLine(at point: CGPoint, direction: Direction,
-                                color: ArrowColor) -> SKShapeNode {
-        let line = SKShapeNode(rectOf: CGSize(width: 1.2, height: 11), cornerRadius: 0.6)
-        line.position = point
-        line.fillColor = GameStyle.uiColor(color)
-        line.strokeColor = .clear
-        line.zRotation = direction.dx == 0 ? .pi / 2 : 0
-        line.setScale(0.3)
-        fragmentLayer.addChild(line)
-        let appear = SKAction.scale(to: 1.0, duration: 0.11)
-        appear.timingMode = .easeOut
-        line.run(appear)
-        return line
-    }
-
-    /// The particles bounce back into the visible area, like a small collision with
-    /// the edge of the screen. Sending them outward would immediately clip the burst.
-    private func edgeShatter(at point: CGPoint, direction: Direction, color: ArrowColor,
-                             particleCount: Int = GameStyle.confettiCount) {
+    /// Fragments continue through the puzzle boundary, making the arrow look as if
+    /// it breaks apart naturally while leaving the authored board shape.
+    private func boundaryShatter(at point: CGPoint, direction: Direction, color: ArrowColor,
+                                 particleCount: Int = GameStyle.confettiCount) {
         let color = GameStyle.uiColor(color)
         for index in 0..<particleCount {
             let path = CGMutablePath()
@@ -739,13 +798,13 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
                 path.move(to: CGPoint(x: -1, y: -1)); path.addLine(to: CGPoint(x: 1.5, y: -0.5)); path.addLine(to: CGPoint(x: 0, y: 2)); path.closeSubpath()
             } else { path.addRoundedRect(in: CGRect(x: -0.75, y: -1.5, width: 1.5, height: 3), cornerWidth: 0.3, cornerHeight: 0.3) }
             let shard = SKShapeNode(path: path); shard.fillColor = color; shard.strokeColor = .clear
-            let start = CGFloat.random(in: 0.5...2)
-            shard.position = CGPoint(x: point.x - CGFloat(direction.dx) * start,
-                                     y: point.y - CGFloat(direction.dy) * start)
+            let start = CGFloat.random(in: -0.8...0.8)
+            shard.position = CGPoint(x: point.x + CGFloat(direction.dx) * start,
+                                     y: point.y + CGFloat(direction.dy) * start)
             fragmentLayer.addChild(shard)
-            let inward = CGFloat.random(in: 5...13), side = CGFloat.random(in: -10...10)
-            let drift = SKAction.moveBy(x: -CGFloat(direction.dx) * inward - CGFloat(direction.dy) * side,
-                                       y: -CGFloat(direction.dy) * inward + CGFloat(direction.dx) * side,
+            let outward = CGFloat.random(in: 5...13), side = CGFloat.random(in: -9...9)
+            let drift = SKAction.moveBy(x: CGFloat(direction.dx) * outward - CGFloat(direction.dy) * side,
+                                       y: CGFloat(direction.dy) * outward + CGFloat(direction.dx) * side,
                                        duration: GameStyle.confettiDuration)
             drift.timingMode = .easeOut
             shard.run(.sequence([.group([drift, .rotate(byAngle: CGFloat.random(in: -4...4), duration: GameStyle.confettiDuration),
@@ -759,7 +818,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         node.setScale(1)
         render(arrow, node: node, travel: 0)
         let block = PuzzleRules.blockingCell(arrow, remaining: remaining, level: level)
-        var target = block.map(point) ?? edgeImpact(for: arrow).point
+        var target = block.map(point) ?? puzzleExit(for: arrow).point
         var steps = Double((target.x - node.position.x) * CGFloat(arrow.direction.dx) +
                            (target.y - node.position.y) * CGFloat(arrow.direction.dy)) / Double(GameStyle.cellSize)
         if let block, let obstacle = remaining.first(where: { $0.id != arrow.id && $0.cells.contains(block) }),

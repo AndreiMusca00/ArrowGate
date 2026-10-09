@@ -68,7 +68,7 @@ struct MenuView: View {
             }.padding(.bottom, 18).accessibilityHidden(true)
             Text("PICTARROW").font(.system(size: 44, weight: .bold, design: .rounded)).tracking(-1.5)
                 .multilineTextAlignment(.center)
-            Text("Clear a path. Match the color.").font(.system(size: 15, design: .rounded))
+            Text("A puzzle hides in every picture.").font(.system(size: 15, design: .rounded))
                 .foregroundColor(GameStyle.muted).padding(.top, 8)
             Spacer(minLength: 16)
             HomePlayButton(level: playLevel) { state.play() }

@@ -56,9 +56,10 @@ final class PuzzleRulesTests: XCTestCase {
             }
             XCTAssertNotNil(LevelValidator.solution(for: level))
             if level.id == 1 { XCTAssertEqual(level.timeLimit, 0) }
+            else if level.id == 2 { XCTAssertEqual(level.timeLimit, 180) }
             else { XCTAssertTrue((25...90).contains(level.timeLimit)) }
         }
-        XCTAssertTrue(LevelRepository.levels.prefix(10).allSatisfy { $0.difficulty == .easy || $0.difficulty == .tutorial })
+        XCTAssertTrue(LevelRepository.levels.prefix(10).filter { $0.id != 2 }.allSatisfy { $0.difficulty == .easy || $0.difficulty == .tutorial })
         XCTAssertEqual(LevelRepository.level(14).difficulty, .hard)
         XCTAssertEqual(LevelRepository.level(17).difficulty, .veryHard)
         XCTAssertEqual(LevelRepository.level(18).difficulty, .easy)
@@ -81,7 +82,11 @@ final class PuzzleRulesTests: XCTestCase {
         XCTAssertEqual(LevelRepository.level(1).size, 30)
         XCTAssertEqual(LevelRepository.level(1).height, 30)
         XCTAssertEqual(LevelRepository.level(1).activeCells?.count, 688)
-        XCTAssertEqual(LevelRepository.level(2).activeCells?.count, 61)
+        XCTAssertEqual(LevelRepository.level(2).activeCells?.count, 688)
+        XCTAssertEqual(LevelRepository.level(2).size, 30)
+        XCTAssertEqual(LevelRepository.level(2).height, 30)
+        XCTAssertEqual(LevelRepository.level(2).difficulty, .hard)
+        XCTAssertTrue(LevelRepository.level(2).arrows.allSatisfy { $0.length >= 3 })
         XCTAssertEqual(LevelRepository.level(40).size, 15)
         XCTAssertTrue(LevelRepository.levels.prefix(20).allSatisfy { $0.chapterID == 1 })
         XCTAssertTrue(LevelRepository.levels.suffix(20).allSatisfy { $0.chapterID == 2 })

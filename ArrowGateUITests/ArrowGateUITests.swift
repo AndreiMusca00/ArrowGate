@@ -31,9 +31,11 @@ final class ArrowGateUITests: XCTestCase {
     }
     func tapArrow(_ arrow: Arrow, level: Fixture, wait: Bool = true) {
         let frame = board.frame
-        let cellSize = 15.0, worldMargin = 44.0
-        let scale = max((Double(level.size) * cellSize + worldMargin * 2) / (frame.width - 24),
-                        (Double(level.height) * cellSize + worldMargin * 2) / (frame.height - 24))
+        let cellSize = 14.0
+        // UI tests skip the intro, so the camera starts halfway between the
+        // 15-column close limit and the 28-column wide limit.
+        let initialVisibleColumns = (15.0 + 28.0) / 2
+        let scale = initialVisibleColumns * cellSize / (frame.width - 24)
         let x = 0.5 + ((Double(arrow.head.x) + 0.5) * cellSize - Double(level.size) * cellSize / 2) / (frame.width * scale)
         let y = 0.5 - ((Double(arrow.head.y) + 0.5) * cellSize - Double(level.height) * cellSize / 2) / (frame.height * scale)
         board.coordinate(withNormalizedOffset: CGVector(dx: x, dy: y)).tap()
