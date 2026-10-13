@@ -637,11 +637,54 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
                        blue: fb + (tb - fb) * progress,
                        alpha: fa + (ta - fa) * progress)
     }
+
+    /// The final presentation follows the authored picture rather than the full
+    /// puzzle canvas. This is especially important for tall, wide and irregular
+    /// rewards whose gameplay board can extend beyond the user's current view.
+    private var finalArtworkBounds: CGRect {
+        let cells: [Cell]
+        if let targets = level.targetCells, !targets.isEmpty {
+            cells = targets.map(\.cell)
+        } else if !paintedCells.isEmpty {
+            cells = Array(paintedCells.keys)
+        } else if let activeCells = level.activeCells, !activeCells.isEmpty {
+            cells = activeCells
+        } else {
+            return CGRect(x: 0, y: 0, width: boardWidth, height: boardHeight)
+        }
+
+        guard let first = cells.first else {
+            return CGRect(x: 0, y: 0, width: boardWidth, height: boardHeight)
+        }
+        var minX = first.x, maxX = first.x, minY = first.y, maxY = first.y
+        for cell in cells.dropFirst() {
+            minX = min(minX, cell.x); maxX = max(maxX, cell.x)
+            minY = min(minY, cell.y); maxY = max(maxY, cell.y)
+        }
+        return CGRect(
+            x: CGFloat(minX) * GameStyle.cellSize,
+            y: CGFloat(minY) * GameStyle.cellSize,
+            width: CGFloat(maxX - minX + 1) * GameStyle.cellSize,
+            height: CGFloat(maxY - minY + 1) * GameStyle.cellSize
+        )
+    }
+
+    private func cameraScaleFitting(_ bounds: CGRect) -> CGFloat {
+        // Padding is expressed in screen points, so every reward receives the
+        // same calm margin regardless of its grid size or aspect ratio.
+        let horizontalPadding: CGFloat = 30
+        let verticalPadding: CGFloat = 34
+        let availableWidth = max(1, size.width - horizontalPadding * 2)
+        let availableHeight = max(1, size.height - verticalPadding * 2)
+        return max(max(bounds.width / availableWidth, bounds.height / availableHeight), 0.01)
+    }
+
     func revealPainting(completion: @escaping () -> Void) {
         inputEnabled = false; interruptIntroduction(); boardCamera.removeAllActions()
-        let centre = CGPoint(x: boardWidth / 2, y: boardHeight / 2)
-        let zoomDuration: TimeInterval = 0.46
-        let fillStart = zoomDuration + 0.10
+        let artworkBounds = finalArtworkBounds
+        let centre = CGPoint(x: artworkBounds.midX, y: artworkBounds.midY)
+        let zoomDuration: TimeInterval = UIAccessibility.isReduceMotionEnabled ? 0.01 : 0.46
+        let fillStart: TimeInterval = 0.10
         var finalDelay: TimeInterval = 0
         var tiles: [SKSpriteNode] = []
 
@@ -680,34 +723,43 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
             tile.run(.sequence([.wait(forDuration: delay), transform,
                                 .scale(to: 1, duration: 0.08)]), withKey: "finalFill")
         }
-        let zoomOut = SKAction.group([
-            .scale(to: furthestCameraScale, duration: zoomDuration),
+        // First let the coloured dots become a complete mosaic. Once the last
+        // square settles, frame that picture as a whole before the polished-art
+        // wipe begins. This final camera scale may exceed the gameplay zoom
+        // limits because presentation must always show the entire reward.
+        let fitArtwork = SKAction.group([
+            .scale(to: cameraScaleFitting(artworkBounds), duration: zoomDuration),
             .move(to: centre, duration: zoomDuration)
         ])
-        zoomOut.timingMode = .easeInEaseOut
+        fitArtwork.timingMode = .easeInEaseOut
         let revealEnd = finalDelay + 0.38
+        let fittedEnd = revealEnd + zoomDuration
         let completionDelay: TimeInterval
         if level.completionArtwork != nil || level.rewardEmoji != nil {
-            let morphStart = revealEnd + 0.28
+            let morphStart = fittedEnd + 0.20
             let wipeDuration: TimeInterval = 0.92
-            let artworkSize = min(boardWidth, boardHeight) * 0.94
             let artwork: SKNode
+            let renderedArtworkSize: CGSize
             if let artworkName = level.completionArtwork {
                 let texture = SKTexture(imageNamed: artworkName)
                 let sprite = SKSpriteNode(texture: texture)
                 let naturalSize = texture.size()
-                let longestSide = max(naturalSize.width, naturalSize.height)
-                let fittedScale = longestSide > 0 ? artworkSize / longestSide : 1
+                let fittedScale = naturalSize.width > 0 && naturalSize.height > 0
+                    ? min(artworkBounds.width / naturalSize.width,
+                          artworkBounds.height / naturalSize.height) * 0.96
+                    : 1
                 sprite.size = CGSize(width: naturalSize.width * fittedScale,
                                      height: naturalSize.height * fittedScale)
                 artwork = sprite
+                renderedArtworkSize = sprite.size
             } else {
                 let emoji = SKLabelNode(fontNamed: "AppleColorEmoji")
                 emoji.text = level.rewardEmoji
-                emoji.fontSize = artworkSize * 0.72
+                emoji.fontSize = min(artworkBounds.width, artworkBounds.height) * 0.72
                 emoji.horizontalAlignmentMode = .center
                 emoji.verticalAlignmentMode = .center
                 artwork = emoji
+                renderedArtworkSize = artworkBounds.size
             }
             artwork.position = .zero
 
@@ -719,16 +771,16 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
             artworkReveal.zPosition = 20
             artworkReveal.setScale(0.985)
             let revealMask = SKSpriteNode(color: .white,
-                                          size: CGSize(width: artworkSize, height: artworkSize))
+                                          size: renderedArtworkSize)
             revealMask.anchorPoint = CGPoint(x: 0, y: 0.5)
-            revealMask.position = CGPoint(x: -artworkSize / 2, y: 0)
+            revealMask.position = CGPoint(x: -renderedArtworkSize.width / 2, y: 0)
             revealMask.xScale = 0.001
             artworkReveal.maskNode = revealMask
             artworkReveal.addChild(artwork)
             paintLayer.addChild(artworkReveal)
 
             for tile in tiles {
-                let progress = min(1, max(0, (tile.position.x - (centre.x - artworkSize / 2)) / artworkSize))
+                let progress = min(1, max(0, (tile.position.x - artworkBounds.minX) / artworkBounds.width))
                 let tileDelay = morphStart + Double(progress) * wipeDuration
                 let towardCentre = CGPoint(
                     x: tile.position.x + (centre.x - tile.position.x) * 0.035,
@@ -758,19 +810,19 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
             // A thin warm highlight marks the wipe edge, like a ruler gliding
             // over the mosaic. It is decorative and disappears before the hold.
             let sweep = SKNode()
-            sweep.position = CGPoint(x: centre.x - artworkSize / 2, y: centre.y)
+            sweep.position = CGPoint(x: centre.x - renderedArtworkSize.width / 2, y: centre.y)
             sweep.zPosition = 22
-            let glow = SKShapeNode(rectOf: CGSize(width: 6, height: artworkSize * 1.04),
+            let glow = SKShapeNode(rectOf: CGSize(width: 6, height: renderedArtworkSize.height * 1.04),
                                    cornerRadius: 3)
             glow.fillColor = UIColor(red: 1, green: 0.73, blue: 0.18, alpha: 0.18)
             glow.strokeColor = .clear
-            let edge = SKShapeNode(rectOf: CGSize(width: 1.4, height: artworkSize),
+            let edge = SKShapeNode(rectOf: CGSize(width: 1.4, height: renderedArtworkSize.height),
                                    cornerRadius: 0.7)
             edge.fillColor = UIColor(red: 1, green: 0.88, blue: 0.50, alpha: 0.92)
             edge.strokeColor = .clear
             sweep.addChild(glow); sweep.addChild(edge); sweep.alpha = 0
             paintLayer.addChild(sweep)
-            let glide = SKAction.moveTo(x: centre.x + artworkSize / 2, duration: wipeDuration)
+            let glide = SKAction.moveTo(x: centre.x + renderedArtworkSize.width / 2, duration: wipeDuration)
             glide.timingMode = .easeInEaseOut
             let shimmer = SKAction.sequence([
                 .fadeIn(withDuration: 0.08),
@@ -785,10 +837,11 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
             // Let the player enjoy the finished collectible before the result card.
             completionDelay = morphStart + wipeDuration + 1.05
         } else {
-            completionDelay = revealEnd + 0.80
+            completionDelay = fittedEnd + 0.80
         }
-        boardCamera.run(.sequence([zoomOut,
-                                   .wait(forDuration: max(0, completionDelay - zoomDuration)),
+        boardCamera.run(.sequence([.wait(forDuration: revealEnd),
+                                   fitArtwork,
+                                   .wait(forDuration: max(0, completionDelay - fittedEnd)),
                                    .run(completion)]),
                         withKey: "paintingReveal")
     }

@@ -69,18 +69,12 @@ struct GameScreen: View {
         ZStack {
             GameStyle.background.opacity(0.90).ignoresSafeArea()
             VStack(spacing: 18) {
-                if model.phase == .won,
-                   model.level.completionArtwork != nil || model.level.rewardEmoji != nil {
-                    LevelRewardView(level: model.level, size: 116)
-                        .accessibilityHidden(true)
-                } else {
-                    Image(systemName: model.phase == .won ? "checkmark.seal.fill" : model.phase == .lost ? "heart.slash.fill" : "pause.circle.fill")
-                        .font(.system(size: 58)).foregroundColor(model.phase == .lost ? GameStyle.color(.red) : GameStyle.accent)
-                }
+                Image(systemName: model.phase == .won ? "checkmark.seal.fill" : model.phase == .lost ? "heart.slash.fill" : "pause.circle.fill")
+                    .font(.system(size: 58)).foregroundColor(model.phase == .lost ? GameStyle.color(.red) : GameStyle.accent)
                 if model.phase == .paused, let difficulty = model.level.difficulty {
                     Text("Level \(String(model.level.id)) · \(difficulty.title)").foregroundColor(GameStyle.muted)
                 }
-                Text(model.phase == .won ? (model.level.id == LevelRepository.count ? "Collection complete!" : "Picture complete!") : model.phase == .lost ? (model.lossReason == .timeout ? "Time is up" : "Try a new path") : "Take a breath")
+                Text(model.phase == .won ? "Well done!" : model.phase == .lost ? (model.lossReason == .timeout ? "Time is up" : "Try a new path") : "Take a breath")
                     .font(.system(size: 28, weight: .bold, design: .rounded)).multilineTextAlignment(.center)
                 if model.phase == .won {
                     Text("\(model.formattedElapsed)  ·  \(model.mistakes) mistakes").foregroundColor(GameStyle.muted)
@@ -105,7 +99,6 @@ struct GameScreen: View {
                                 state.showCollection()
                             }
                         }
-                        ActionButton(title: "Play again", icon: "arrow.counterclockwise") { model.restart() }
                     }
                 } else if model.phase == .paused {
                     ActionButton(title: "Continue", icon: "play.fill", primary: true) { model.resume() }
@@ -227,24 +220,6 @@ private struct HintOfferView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
         .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.8), lineWidth: 1))
         .shadow(color: GameStyle.ink.opacity(0.12), radius: 16, y: 7)
-    }
-}
-
-struct LevelRewardView: View {
-    let level: LevelDefinition
-    let size: CGFloat
-    var body: some View {
-        Group {
-            if let artwork = level.completionArtwork {
-                Image(artwork).resizable().scaledToFit()
-            } else {
-                Text(level.rewardEmoji ?? "✨")
-                    .font(.system(size: size * 0.78))
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
-            }
-        }
-        .frame(width: size, height: size)
     }
 }
 

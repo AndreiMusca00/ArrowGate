@@ -70,7 +70,7 @@ final class ArrowGateUITests: XCTestCase {
                 if level.number == 1 { capture("victory") }
                 app.buttons["nextLevel"].tap()
             } else {
-                XCTAssertTrue(app.staticTexts["Collection complete!"].waitForExistence(timeout: 5)); capture("campaign-complete")
+                XCTAssertTrue(app.staticTexts["Well done!"].waitForExistence(timeout: 5)); capture("campaign-complete")
                 app.buttons["Open collection"].tap()
                 XCTAssertTrue(app.staticTexts["collectionPage"].waitForExistence(timeout: 5))
                 app.buttons["homeTab"].tap()
@@ -215,18 +215,15 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertTrue(app.buttons["idleHint"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.buttons["idleHint"].label, "Watch video for hint")
     }
-    func testMilestoneRewardAppearsOnlyOnFirstCompletion() throws {
+    func testMilestoneRewardAppearsOnCompletion() throws {
         let level = try XCTUnwrap(fixtures().first { $0.number == 5 })
         app.launchArguments += ["-level", "5"]
         app.launch(); XCTAssertTrue(board.waitForExistence(timeout: 10))
         for id in level.solution { tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level) }
         XCTAssertTrue(app.descendants(matching: .any)["completionReward"].waitForExistence(timeout: 6))
         XCTAssertTrue(app.staticTexts["+1 HINT"].exists)
-
-        app.buttons["Play again"].tap()
-        for id in level.solution { tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level) }
-        XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 6))
-        XCTAssertFalse(app.descendants(matching: .any)["completionReward"].exists)
+        XCTAssertTrue(app.buttons["nextLevel"].exists)
+        XCTAssertFalse(app.buttons["Play again"].exists)
     }
     func testSmileArtworkMorphsBeforeCompletionCard() throws {
         let level = try XCTUnwrap(fixtures().first)
