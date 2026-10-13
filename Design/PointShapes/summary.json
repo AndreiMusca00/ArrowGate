@@ -1,0 +1,263 @@
+[
+  {
+    "asset": "EnchantedTreeComplete",
+    "pointCount": 593,
+    "componentSizes": [
+      579,
+      14
+    ],
+    "isolatedPointCount": 0,
+    "width": 29,
+    "height": 30
+  },
+  {
+    "asset": "EnchantedTreePiece01",
+    "pointCount": 562,
+    "componentSizes": [
+      562
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 28
+  },
+  {
+    "asset": "EnchantedTreePiece02",
+    "pointCount": 400,
+    "componentSizes": [
+      400
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 25
+  },
+  {
+    "asset": "EnchantedTreePiece03",
+    "pointCount": 397,
+    "componentSizes": [
+      397
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 23
+  },
+  {
+    "asset": "EnchantedTreePiece04",
+    "pointCount": 509,
+    "componentSizes": [
+      509
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 28
+  },
+  {
+    "asset": "EnchantedTreePiece05",
+    "pointCount": 565,
+    "componentSizes": [
+      565
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 30
+  },
+  {
+    "asset": "EnchantedTreePiece06",
+    "pointCount": 638,
+    "componentSizes": [
+      638
+    ],
+    "isolatedPointCount": 0,
+    "width": 29,
+    "height": 30
+  },
+  {
+    "asset": "EnchantedTreePiece07",
+    "pointCount": 568,
+    "componentSizes": [
+      568
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 26
+  },
+  {
+    "asset": "EnchantedTreePiece08",
+    "pointCount": 593,
+    "componentSizes": [
+      593
+    ],
+    "isolatedPointCount": 0,
+    "width": 27,
+    "height": 30
+  },
+  {
+    "asset": "EnchantedTreePiece09",
+    "pointCount": 411,
+    "componentSizes": [
+      411
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 22
+  },
+  {
+    "asset": "EnchantedTreePiece10",
+    "pointCount": 626,
+    "componentSizes": [
+      626
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 29
+  },
+  {
+    "asset": "EnchantedTreePiece11",
+    "pointCount": 395,
+    "componentSizes": [
+      395
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 22
+  },
+  {
+    "asset": "EnchantedTreePiece12",
+    "pointCount": 518,
+    "componentSizes": [
+      518
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 25
+  },
+  {
+    "asset": "EnchantedTreePiece13",
+    "pointCount": 331,
+    "componentSizes": [
+      331
+    ],
+    "isolatedPointCount": 0,
+    "width": 19,
+    "height": 30
+  },
+  {
+    "asset": "EnchantedTreePiece14",
+    "pointCount": 555,
+    "componentSizes": [
+      555
+    ],
+    "isolatedPointCount": 0,
+    "width": 23,
+    "height": 30
+  },
+  {
+    "asset": "EnchantedTreePiece15",
+    "pointCount": 487,
+    "componentSizes": [
+      487
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 21
+  },
+  {
+    "asset": "EnchantedTreePiece16",
+    "pointCount": 356,
+    "componentSizes": [
+      356
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 21
+  },
+  {
+    "asset": "EnchantedTreePiece17",
+    "pointCount": 377,
+    "componentSizes": [
+      377
+    ],
+    "isolatedPointCount": 0,
+    "width": 20,
+    "height": 30
+  },
+  {
+    "asset": "EnchantedTreePiece18",
+    "pointCount": 396,
+    "componentSizes": [
+      396
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 24
+  },
+  {
+    "asset": "EnchantedTreePiece19",
+    "pointCount": 333,
+    "componentSizes": [
+      333
+    ],
+    "isolatedPointCount": 0,
+    "width": 22,
+    "height": 30
+  },
+  {
+    "asset": "EnchantedTreePiece20",
+    "pointCount": 364,
+    "componentSizes": [
+      364
+    ],
+    "isolatedPointCount": 0,
+    "width": 20,
+    "height": 30
+  },
+  {
+    "asset": "EnchantedTreePiece21",
+    "pointCount": 488,
+    "componentSizes": [
+      488
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 27
+  },
+  {
+    "asset": "EnchantedTreePiece22",
+    "pointCount": 628,
+    "componentSizes": [
+      628
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 30
+  },
+  {
+    "asset": "EnchantedTreePiece23",
+    "pointCount": 263,
+    "componentSizes": [
+      263
+    ],
+    "isolatedPointCount": 0,
+    "width": 14,
+    "height": 30
+  },
+  {
+    "asset": "EnchantedTreePiece24",
+    "pointCount": 362,
+    "componentSizes": [
+      362
+    ],
+    "isolatedPointCount": 0,
+    "width": 27,
+    "height": 30
+  },
+  {
+    "asset": "SmileReward",
+    "pointCount": 718,
+    "componentSizes": [
+      718
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 30
+  }
+]

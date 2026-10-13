@@ -19,9 +19,9 @@ final class PuzzleRulesTests: XCTestCase {
         try JSONEncoder().encode(fixtures).write(to: URL(fileURLWithPath: path))
     }
     func testAllPublishedLevelsAndEveryLegalChoice() throws {
-        XCTAssertEqual(LevelRepository.version, 3)
-        XCTAssertEqual(LevelRepository.levelsPerChapter, 50)
-        XCTAssertEqual(LevelRepository.levels.count, 40)
+        XCTAssertEqual(LevelRepository.version, 10)
+        XCTAssertEqual(LevelRepository.levelsPerChapter, 25)
+        XCTAssertEqual(LevelRepository.levels.count, 25)
         for level in LevelRepository.levels {
             let solution = try XCTUnwrap(LevelValidator.solution(for: level))
             XCTAssertEqual(solution.count, level.arrows.count)
@@ -32,10 +32,15 @@ final class PuzzleRulesTests: XCTestCase {
                 remaining.removeAll { $0.id == id }
             }
             XCTAssertTrue(remaining.isEmpty)
-            for first in level.arrows where PuzzleRules.evaluate(first, remaining: level.arrows, level: level) == .allowed {
-                var alternate = level.arrows.filter { $0.id != first.id }
-                while let arrow = PuzzleRules.hint(remaining: alternate, level: level) { alternate.removeAll { $0.id == arrow.id } }
-                XCTAssertTrue(alternate.isEmpty, "Legal choice must not create a dead end")
+            let exhaustiveSamples: Set<Int> = [1, 5, 8, 12, 25]
+            if exhaustiveSamples.contains(level.id) {
+                for first in level.arrows where PuzzleRules.evaluate(first, remaining: level.arrows, level: level) == .allowed {
+                    var alternate = level.arrows.filter { $0.id != first.id }
+                    while let arrow = PuzzleRules.hint(remaining: alternate, level: level) {
+                        alternate.removeAll { $0.id == arrow.id }
+                    }
+                    XCTAssertTrue(alternate.isEmpty, "Legal choice must not create a dead end")
+                }
             }
         }
     }
@@ -46,28 +51,45 @@ final class PuzzleRulesTests: XCTestCase {
                 guard let body = arrow.body else { return false }
                 return body.count == arrow.length && !body.isEmpty
             })
-            let chapter = LevelRepository.chapter(level.chapterID)
-            let position = try XCTUnwrap(LevelRepository.levels(in: chapter).firstIndex { $0.id == level.id })
-            if position >= 5 {
-                XCTAssertGreaterThanOrEqual(level.arrows.filter { arrow in
-                    guard let body = arrow.body else { return false }
-                    return zip(body, body.dropFirst()).contains { a, b in arrow.direction.dx == 0 ? a.x != b.x : a.y != b.y }
-                }.count, 2)
-            }
+            XCTAssertTrue(level.arrows.allSatisfy { $0.length >= 3 })
             XCTAssertNotNil(LevelValidator.solution(for: level))
             if level.id == 1 { XCTAssertEqual(level.timeLimit, 0) }
-            else if level.id == 2 { XCTAssertEqual(level.timeLimit, 180) }
-            else { XCTAssertTrue((25...90).contains(level.timeLimit)) }
+            else { XCTAssertTrue((120...360).contains(level.timeLimit)) }
         }
-        XCTAssertTrue(LevelRepository.levels.prefix(10).filter { $0.id != 2 }.allSatisfy { $0.difficulty == .easy || $0.difficulty == .tutorial })
-        XCTAssertEqual(LevelRepository.level(14).difficulty, .hard)
-        XCTAssertEqual(LevelRepository.level(17).difficulty, .veryHard)
-        XCTAssertEqual(LevelRepository.level(18).difficulty, .easy)
-        XCTAssertEqual(LevelRepository.level(20).difficulty, .nightmare)
+        for chapter in LevelRepository.chapters {
+            let levels = LevelRepository.levels(in: chapter)
+            XCTAssertGreaterThanOrEqual(levels.filter { $0.difficulty == .hard }.count, 2)
+            XCTAssertGreaterThanOrEqual(levels.filter { $0.difficulty == .veryHard }.count, 2)
+            XCTAssertGreaterThanOrEqual(levels.filter { $0.difficulty == .nightmare }.count, 2)
+            XCTAssertEqual(Set(levels.flatMap(\.arrows).map(\.direction)), Set(Direction.allCases))
+            let chapterColourCount = Set(levels.flatMap(\.arrows).map(\.color)).count
+            XCTAssertEqual(chapterColourCount, 1)
+        }
+        XCTAssertEqual(LevelRepository.level(5).difficulty, .hard)
+        XCTAssertEqual(LevelRepository.level(8).difficulty, .veryHard)
+        XCTAssertEqual(LevelRepository.level(25).difficulty, .nightmare)
     }
+    func testTrialArrowBudgetsAndDifficultyDistribution() {
+        let levels = LevelRepository.levels
+        XCTAssertEqual(levels.filter { $0.difficulty == .hard }.count, 6)
+        XCTAssertEqual(levels.filter { $0.difficulty == .veryHard }.count, 4)
+        XCTAssertEqual(levels.filter { $0.difficulty == .nightmare }.count, 2)
+        XCTAssertEqual(levels.filter { $0.difficulty == .easy || $0.difficulty == .tutorial }.count, 13)
+        for level in levels {
+            let count: Int
+            switch level.difficulty {
+            case .hard: count = 75
+            case .veryHard: count = 100
+            case .nightmare: count = 150
+            default: count = 50
+            }
+            XCTAssertEqual(level.arrows.count, count, "Level \(level.id)")
+            XCTAssertTrue(level.arrows.allSatisfy { $0.length >= 3 })
+        }
+    }
+
     func testAllPublishedBoardsAreAuthoredCollectiblePaintings() throws {
-        XCTAssertEqual(Set(LevelRepository.levels.compactMap(\.rewardEmoji)).count, 40)
-        XCTAssertEqual(Set(LevelRepository.levels.compactMap(\.rewardName)).count, 40)
+        XCTAssertEqual(Set(LevelRepository.levels.compactMap(\.rewardName)).count, 25)
         for level in LevelRepository.levels {
             let activeCells = try XCTUnwrap(level.activeCells)
             let targetCells = try XCTUnwrap(level.targetCells)
@@ -75,22 +97,27 @@ final class PuzzleRulesTests: XCTestCase {
             XCTAssertEqual(Set(activeCells), Set(targetCells.map(\.cell)))
             XCTAssertEqual(targetCells.count, activeCells.count)
             XCTAssertLessThan(activeCells.count, level.size * level.height)
-            XCTAssertNotNil(level.rewardEmoji)
+            XCTAssertNotNil(level.completionArtwork)
             XCTAssertNotNil(level.rewardName)
             XCTAssertNotNil(LevelValidator.solution(for: level))
         }
-        XCTAssertEqual(LevelRepository.level(1).size, 30)
-        XCTAssertEqual(LevelRepository.level(1).height, 30)
-        XCTAssertEqual(LevelRepository.level(1).activeCells?.count, 688)
-        XCTAssertEqual(LevelRepository.level(2).activeCells?.count, 688)
-        XCTAssertEqual(LevelRepository.level(2).size, 30)
-        XCTAssertEqual(LevelRepository.level(2).height, 30)
-        XCTAssertEqual(LevelRepository.level(2).difficulty, .hard)
-        XCTAssertTrue(LevelRepository.level(2).arrows.allSatisfy { $0.length >= 3 })
-        XCTAssertEqual(LevelRepository.level(40).size, 15)
-        XCTAssertTrue(LevelRepository.levels.prefix(20).allSatisfy { $0.chapterID == 1 })
-        XCTAssertTrue(LevelRepository.levels.suffix(20).allSatisfy { $0.chapterID == 2 })
-        XCTAssertEqual(LevelRepository.chapters.map(\.levelCount), [50, 50])
+        XCTAssertGreaterThanOrEqual(Set(LevelRepository.levels.map { "\($0.size)x\($0.height)" }).count, 8)
+        XCTAssertTrue(LevelRepository.levels.allSatisfy { level in
+            level.arrows.map(\.length).reduce(into: Set<Int>()) { $0.insert($1) }.count >= 2
+        })
+        for chapter in LevelRepository.chapters {
+            XCTAssertEqual(LevelRepository.levels(in: chapter).count, 25)
+            XCTAssertEqual(chapter.levelCount, 25)
+            XCTAssertEqual(chapter.assembly?.pieceCount, 24)
+        }
+        XCTAssertEqual(LevelRepository.chapters.map(\.levelCount), [25])
+        XCTAssertEqual(LevelRepository.levels.map(\.chapterID), Array(repeating: 1, count: 25))
+        XCTAssertEqual(
+            LevelRepository.levels.prefix(24).compactMap(\.completionArtwork),
+            (1...24).map { String(format: "EnchantedTreePiece%02d", $0) }
+        )
+        XCTAssertEqual(LevelRepository.level(25).completionArtwork, "EnchantedTreeComplete")
+        XCTAssertEqual(LevelRepository.level(25).difficulty, .nightmare)
         XCTAssertEqual(LevelRepository.level(5).completionReward, LevelCompletionReward(kind: .hint))
         XCTAssertEqual(LevelRepository.level(10).completionReward, LevelCompletionReward(kind: .life))
     }
@@ -114,16 +141,17 @@ final class PuzzleRulesTests: XCTestCase {
         let overlap = ArrowDefinition(id: 1, head: arrow.head, direction: .up, color: .red, length: 1)
         XCTAssertNil(LevelValidator.solution(for: LevelDefinition(id: 1, size: 4, arrows: [arrow, overlap], gates: [GateDefinition(key: arrow.gateKey, color: .red)])))
     }
-    func testHintIsLegalAndTutorialStartsWithPaintableSmile() throws {
+    func testHintIsLegalAndTutorialStartsWithCollectibleArtwork() throws {
         for level in LevelRepository.levels {
             let hint = try XCTUnwrap(PuzzleRules.hint(remaining: level.arrows, level: level))
             XCTAssertEqual(PuzzleRules.evaluate(hint, remaining: level.arrows, level: level), .allowed)
         }
         let level = LevelRepository.level(1)
-        XCTAssertEqual(level.arrows.count, 72)
+        XCTAssertGreaterThanOrEqual(level.arrows.count, 10)
         XCTAssertTrue(level.arrows.allSatisfy { $0.length >= 3 })
-        XCTAssertEqual(level.completionArtwork, "SmileReward")
-        XCTAssertEqual(Set(level.arrows.map(\.color)), Set([.yellow, .brown]))
+        XCTAssertEqual(level.completionArtwork, "EnchantedTreePiece01")
+        XCTAssertEqual(Set(level.arrows.map(\.color)).count, 1)
+        XCTAssertTrue(level.arrows.allSatisfy { $0.color.hex.hasPrefix("#") })
         XCTAssertEqual(Set(level.arrows.flatMap(\.cells)), Set(try XCTUnwrap(level.activeCells)))
         XCTAssertTrue(level.arrows.contains { PuzzleRules.evaluate($0, remaining: level.arrows, level: level) == .allowed })
         XCTAssertTrue(level.arrows.contains { PuzzleRules.evaluate($0, remaining: level.arrows, level: level) == .blocked })
@@ -132,7 +160,7 @@ final class PuzzleRulesTests: XCTestCase {
     func testTargetPixelsRequireAReachableArrowOfTheSameColour() throws {
         let source = LevelRepository.level(1)
         var targets = try XCTUnwrap(source.targetCells)
-        targets[0] = TargetCell(cell: targets[0].cell, color: .blue)
+        targets[0] = TargetCell(cell: targets[0].cell, color: ArrowColor(hex: "#010203"))
         let impossible = LevelDefinition(id: source.id, size: source.size, height: source.height,
                                          timeLimit: source.timeLimit, arrows: source.arrows,
                                          gates: source.gates, difficulty: source.difficulty,

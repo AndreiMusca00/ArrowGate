@@ -8,11 +8,28 @@ enum LevelRepository {
         #else
         let bundle = Bundle.main
         #endif
-        guard let url = bundle.url(forResource: "catalog", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let catalog = try? JSONDecoder().decode(GameCatalog.self, from: data),
+        let decoder = JSONDecoder()
+        guard let indexData = bundledData(named: "catalog.json", in: bundle),
+              let index = try? decoder.decode(CatalogIndex.self, from: indexData),
+              !index.chapterFiles.isEmpty,
+              Set(index.chapterFiles).count == index.chapterFiles.count else {
+            preconditionFailure("Missing or invalid bundled catalog.json index")
+        }
+
+        let chapterCatalogs = index.chapterFiles.compactMap { fileName -> ChapterCatalog? in
+            guard let data = bundledData(named: fileName, in: bundle) else { return nil }
+            return try? decoder.decode(ChapterCatalog.self, from: data)
+        }
+        let catalog = GameCatalog(
+            version: index.version,
+            configuration: index.configuration,
+            chapters: chapterCatalogs.map(\.chapter),
+            levels: chapterCatalogs.flatMap(\.levels)
+        )
+
+        guard chapterCatalogs.count == index.chapterFiles.count,
               catalog.version > 0,
-              catalog.configuration.levelsPerChapter == 50,
+              catalog.configuration.levelsPerChapter == 25,
               catalog.chapters.map(\.id) == Array(1...catalog.chapters.count),
               catalog.levels.map(\.id) == Array(1...catalog.levels.count),
               catalog.levels.allSatisfy({ level in
@@ -20,15 +37,30 @@ enum LevelRepository {
               }),
               catalog.chapters.allSatisfy({ chapter in
                   chapter.levelCount == catalog.configuration.levelsPerChapter
-                      && !catalog.levels.filter({ $0.chapterID == chapter.id }).isEmpty
-                      && catalog.levels.filter({ $0.chapterID == chapter.id }).count <= chapter.levelCount
+                      && catalog.levels.filter({ $0.chapterID == chapter.id }).count == chapter.levelCount
                       && chapter.style.hasValidValues
+                      && chapter.assembly?.hasValidValues != false
               }),
               catalog.levels.allSatisfy({ LevelValidator.solution(for: $0) != nil }) else {
-            preconditionFailure("Missing or invalid bundled catalog.json")
+            preconditionFailure("Missing or invalid bundled chapter catalog")
         }
         return catalog
     }()
+
+    private static func bundledData(named fileName: String, in bundle: Bundle) -> Data? {
+        let fileURL = URL(fileURLWithPath: fileName)
+        let resourceName = fileURL.deletingPathExtension().lastPathComponent
+        let resourceExtension = fileURL.pathExtension
+        let candidates = [
+            bundle.url(forResource: resourceName, withExtension: resourceExtension, subdirectory: "Levels"),
+            bundle.url(forResource: resourceName, withExtension: resourceExtension),
+            bundle.resourceURL?.appendingPathComponent("Levels").appendingPathComponent(fileName)
+        ]
+        guard let url = candidates.compactMap({ $0 }).first(where: {
+            FileManager.default.fileExists(atPath: $0.path)
+        }) else { return nil }
+        return try? Data(contentsOf: url)
+    }
 
     static var version: Int { catalog.version }
     static var levelsPerChapter: Int { catalog.configuration.levelsPerChapter }
@@ -48,6 +80,18 @@ enum LevelRepository {
     }
     static func firstLevel(in chapter: ChapterDefinition) -> LevelDefinition? {
         levels(in: chapter).first
+    }
+}
+
+private extension ChapterAssemblyDefinition {
+    var hasValidValues: Bool {
+        pieceCount > 0
+            && pieceCount == placements.count
+            && !assetPrefix.isEmpty
+            && aspectRatio > 0
+            && placements.allSatisfy {
+                (0...1).contains($0.x) && (0...1).contains($0.y) && $0.scale > 0
+            }
     }
 }
 

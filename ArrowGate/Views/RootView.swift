@@ -29,20 +29,9 @@ struct ActionButton: View {
         }.buttonStyle(.plain)
     }
 }
-struct IconButton: View {
-    let icon: String
-    let label: String
-    let action: () -> Void
-    var body: some View {
-        Button(action: action) { Image(systemName: icon).font(.system(size: 19, weight: .semibold))
-            .frame(width: 48, height: 48).background(GameStyle.panel, in: RoundedRectangle(cornerRadius: 16)) }
-        .buttonStyle(.plain).foregroundColor(GameStyle.ink).accessibilityLabel(label)
-    }
-}
 struct MenuView: View {
     @EnvironmentObject private var state: AppState
     @ObservedObject var store: ProgressStore
-    @State private var settings = false
 
     private var playLevel: LevelDefinition {
         let id = state.homeLevelNumber
@@ -51,8 +40,11 @@ struct MenuView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack { Text("A LITTLE ORDER. A BIG ESCAPE.").font(.system(size: 10, weight: .bold)).tracking(1.4).foregroundColor(GameStyle.muted)
-                Spacer(); IconButton(icon: "gearshape", label: "Settings") { settings = true } }
+            Text("A LITTLE ORDER. A BIG ESCAPE.")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1.4)
+                .foregroundColor(GameStyle.muted)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             HomeEventsView()
                 .padding(.top, 14)
@@ -74,15 +66,25 @@ struct MenuView: View {
             HomePlayButton(level: playLevel) { state.play() }
             Spacer(minLength: 20)
         }.foregroundColor(GameStyle.ink).padding(.horizontal, 28).padding(.vertical, 16)
-            .sheet(isPresented: $settings) { SettingsView(store: store) }
     }
 }
 struct SettingsView: View {
     @ObservedObject var store: ProgressStore
-    @Environment(\.dismiss) private var dismiss
     @State private var resetConfirmation = false
+
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            VStack(spacing: 4) {
+                Text("SETTINGS")
+                    .font(.system(size: 25, weight: .bold, design: .rounded))
+                    .accessibilityIdentifier("settingsPage")
+                Text("Make Pictarrow feel like yours")
+                    .font(.system(size: 15, design: .rounded))
+                    .foregroundColor(GameStyle.muted)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 82)
+
             Form {
                 Section("Feedback") { Toggle("Sound", isOn: $store.sound); Toggle("Haptics", isOn: $store.haptics) }
                 Section("Progress") {
@@ -91,11 +93,14 @@ struct SettingsView: View {
                     LabeledContent("Reserve lives", value: String(store.reserveLives))
                     Button("Reset Progress", role: .destructive) { resetConfirmation = true }
                 }
-            }.scrollContentBackground(.hidden).background(GameStyle.background)
-                .navigationTitle("Settings").toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
-                .confirmationDialog("Reset progress?", isPresented: $resetConfirmation, titleVisibility: .visible) {
-                    Button("Reset Progress", role: .destructive) { store.reset() }
-                }
-        }.preferredColorScheme(.light)
+            }
+            .scrollContentBackground(.hidden)
+            .background(GameStyle.background)
+        }
+        .background(GameStyle.background.ignoresSafeArea())
+        .confirmationDialog("Reset progress?", isPresented: $resetConfirmation, titleVisibility: .visible) {
+            Button("Reset Progress", role: .destructive) { store.reset() }
+        }
+        .preferredColorScheme(.light)
     }
 }

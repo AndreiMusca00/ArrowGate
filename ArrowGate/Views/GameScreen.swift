@@ -80,7 +80,7 @@ struct GameScreen: View {
                 if model.phase == .paused, let difficulty = model.level.difficulty {
                     Text("Level \(String(model.level.id)) · \(difficulty.title)").foregroundColor(GameStyle.muted)
                 }
-                Text(model.phase == .won ? (model.level.id == LevelRepository.count ? "Gallery complete!" : "Picture complete!") : model.phase == .lost ? (model.lossReason == .timeout ? "Time is up" : "Try a new path") : "Take a breath")
+                Text(model.phase == .won ? (model.level.id == LevelRepository.count ? "Collection complete!" : "Picture complete!") : model.phase == .lost ? (model.lossReason == .timeout ? "Time is up" : "Try a new path") : "Take a breath")
                     .font(.system(size: 28, weight: .bold, design: .rounded)).multilineTextAlignment(.center)
                 if model.phase == .won {
                     Text("\(model.formattedElapsed)  ·  \(model.mistakes) mistakes").foregroundColor(GameStyle.muted)
@@ -101,8 +101,8 @@ struct GameScreen: View {
                         } else {
                             Text("\(LevelRepository.count) / \(LevelRepository.count) puzzles complete")
                                 .foregroundColor(GameStyle.muted)
-                            ActionButton(title: "Open gallery", icon: "square.grid.2x2", primary: true) {
-                                state.showGallery()
+                            ActionButton(title: "Open collection", icon: "square.grid.2x2", primary: true) {
+                                state.showCollection()
                             }
                         }
                         ActionButton(title: "Play again", icon: "arrow.counterclockwise") { model.restart() }

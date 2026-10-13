@@ -35,8 +35,13 @@ enum LevelValidator {
                       (cells.count < 2 || cells[1] == arrow.head.moved(arrow.direction, by: -1)) &&
                       zip(cells, cells.dropFirst()).allSatisfy { abs($0.x - $1.x) + abs($0.y - $1.y) == 1 }
               }) else { return nil }
+        let authoredCells = level.activeCells.map(Set.init)
+        func containsFast(_ cell: Cell) -> Bool {
+            guard (0..<level.size).contains(cell.x), (0..<level.height).contains(cell.y) else { return false }
+            return authoredCells?.contains(cell) ?? true
+        }
         let cells = level.arrows.flatMap(\.cells)
-        guard cells.allSatisfy(level.contains), Set(cells).count == cells.count else { return nil }
+        guard cells.allSatisfy(containsFast), Set(cells).count == cells.count else { return nil }
         if let activeCells = level.activeCells {
             let insideBounds = activeCells.allSatisfy {
                 (0..<level.size).contains($0.x) && (0..<level.height).contains($0.y)
@@ -56,30 +61,58 @@ enum LevelValidator {
 
             var reachableByColor: [ArrowColor: Set<Cell>] = [:]
             for arrow in level.arrows {
-                reachableByColor[arrow.color, default: []].formUnion(revealCells(for: arrow, in: level))
+                var reachable = arrow.cells
+                var cell = arrow.head.moved(arrow.direction)
+                while containsFast(cell) {
+                    reachable.append(cell)
+                    cell = cell.moved(arrow.direction)
+                }
+                reachableByColor[arrow.color, default: []].formUnion(reachable)
             }
             guard targets.allSatisfy({ reachableByColor[$0.color]?.contains($0.cell) == true }) else {
                 return nil
             }
         }
-        var remaining = level.arrows
-        var result: [Int] = []
-        // Removing an arrow can only free space: every legal choice preserves solvability.
-        while !remaining.isEmpty {
-            guard let next = PuzzleRules.hint(remaining: remaining, level: level) else { return nil }
-            result.append(next.id)
-            remaining.removeAll { $0.id == next.id }
+        // Build the blocker graph once. Repeatedly scanning every remaining
+        // arrow made catalog validation needlessly expensive for large boards.
+        // An arrow can leave exactly when every owner on the ray in front of
+        // its head has already left, so a topological ordering is the solution.
+        let owner = Dictionary(uniqueKeysWithValues: level.arrows.flatMap { arrow in
+            arrow.cells.map { ($0, arrow.id) }
+        })
+        var blockers: [Int: Set<Int>] = [:]
+        var dependants: [Int: Set<Int>] = [:]
+        for arrow in level.arrows {
+            var arrowBlockers: Set<Int> = []
+            var cell = arrow.head.moved(arrow.direction)
+            while containsFast(cell) {
+                if let blocker = owner[cell] {
+                    guard blocker != arrow.id else { return nil }
+                    arrowBlockers.insert(blocker)
+                }
+                cell = cell.moved(arrow.direction)
+            }
+            blockers[arrow.id] = arrowBlockers
+            for blocker in arrowBlockers {
+                dependants[blocker, default: []].insert(arrow.id)
+            }
         }
-        return result
+
+        var ready = level.arrows.map(\.id).filter { blockers[$0]?.isEmpty == true }
+        var cursor = 0
+        var result: [Int] = []
+        while cursor < ready.count {
+            let removed = ready[cursor]
+            cursor += 1
+            result.append(removed)
+            for dependant in dependants[removed, default: []] {
+                blockers[dependant]?.remove(removed)
+                if blockers[dependant]?.isEmpty == true {
+                    ready.append(dependant)
+                }
+            }
+        }
+        return result.count == level.arrows.count ? result : nil
     }
 
-    private static func revealCells(for arrow: ArrowDefinition, in level: LevelDefinition) -> [Cell] {
-        var result = arrow.cells
-        var cell = arrow.head.moved(arrow.direction)
-        while level.contains(cell) {
-            result.append(cell)
-            cell = cell.moved(arrow.direction)
-        }
-        return result
-    }
 }

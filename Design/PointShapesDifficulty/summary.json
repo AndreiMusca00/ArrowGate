@@ -1,0 +1,353 @@
+[
+  {
+    "asset": "level-001-EnchantedTreePiece01",
+    "levelID": 1,
+    "difficulty": "tutorial",
+    "catalogDifficulty": "tutorial",
+    "gridSize": 16,
+    "pointCount": 158,
+    "componentSizes": [
+      158
+    ],
+    "isolatedPointCount": 0,
+    "width": 16,
+    "height": 15
+  },
+  {
+    "asset": "level-002-EnchantedTreePiece02",
+    "levelID": 2,
+    "difficulty": "easy",
+    "catalogDifficulty": "easy",
+    "gridSize": 18,
+    "pointCount": 151,
+    "componentSizes": [
+      151
+    ],
+    "isolatedPointCount": 0,
+    "width": 18,
+    "height": 15
+  },
+  {
+    "asset": "level-003-EnchantedTreePiece03",
+    "levelID": 3,
+    "difficulty": "easy",
+    "catalogDifficulty": "easy",
+    "gridSize": 20,
+    "pointCount": 170,
+    "componentSizes": [
+      170
+    ],
+    "isolatedPointCount": 0,
+    "width": 20,
+    "height": 15
+  },
+  {
+    "asset": "level-004-EnchantedTreePiece04",
+    "levelID": 4,
+    "difficulty": "easy",
+    "catalogDifficulty": "easy",
+    "gridSize": 22,
+    "pointCount": 268,
+    "componentSizes": [
+      268
+    ],
+    "isolatedPointCount": 0,
+    "width": 22,
+    "height": 20
+  },
+  {
+    "asset": "level-005-EnchantedTreePiece05",
+    "levelID": 5,
+    "difficulty": "hard",
+    "catalogDifficulty": "hard",
+    "gridSize": 30,
+    "pointCount": 565,
+    "componentSizes": [
+      565
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 30
+  },
+  {
+    "asset": "level-006-EnchantedTreePiece06",
+    "levelID": 6,
+    "difficulty": "easy",
+    "catalogDifficulty": "easy",
+    "gridSize": 24,
+    "pointCount": 410,
+    "componentSizes": [
+      410
+    ],
+    "isolatedPointCount": 0,
+    "width": 23,
+    "height": 24
+  },
+  {
+    "asset": "level-007-EnchantedTreePiece07",
+    "levelID": 7,
+    "difficulty": "hard",
+    "catalogDifficulty": "hard",
+    "gridSize": 30,
+    "pointCount": 568,
+    "componentSizes": [
+      568
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 26
+  },
+  {
+    "asset": "level-008-EnchantedTreePiece08",
+    "levelID": 8,
+    "difficulty": "veryHard",
+    "catalogDifficulty": "veryHard",
+    "gridSize": 40,
+    "pointCount": 1045,
+    "componentSizes": [
+      1045
+    ],
+    "isolatedPointCount": 0,
+    "width": 36,
+    "height": 40
+  },
+  {
+    "asset": "level-009-EnchantedTreePiece09",
+    "levelID": 9,
+    "difficulty": "easy",
+    "catalogDifficulty": "easy",
+    "gridSize": 24,
+    "pointCount": 265,
+    "componentSizes": [
+      265
+    ],
+    "isolatedPointCount": 0,
+    "width": 24,
+    "height": 17
+  },
+  {
+    "asset": "level-010-EnchantedTreePiece10",
+    "levelID": 10,
+    "difficulty": "nightmare",
+    "catalogDifficulty": "nightmare",
+    "gridSize": 50,
+    "pointCount": 1702,
+    "componentSizes": [
+      1702
+    ],
+    "isolatedPointCount": 0,
+    "width": 50,
+    "height": 48
+  },
+  {
+    "asset": "level-011-EnchantedTreePiece11",
+    "levelID": 11,
+    "difficulty": "easy",
+    "catalogDifficulty": "easy",
+    "gridSize": 24,
+    "pointCount": 245,
+    "componentSizes": [
+      245
+    ],
+    "isolatedPointCount": 0,
+    "width": 24,
+    "height": 17
+  },
+  {
+    "asset": "level-012-EnchantedTreePiece12",
+    "levelID": 12,
+    "difficulty": "hard",
+    "catalogDifficulty": "hard",
+    "gridSize": 30,
+    "pointCount": 518,
+    "componentSizes": [
+      518
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 25
+  },
+  {
+    "asset": "level-013-EnchantedTreePiece13",
+    "levelID": 13,
+    "difficulty": "easy",
+    "catalogDifficulty": "easy",
+    "gridSize": 24,
+    "pointCount": 208,
+    "componentSizes": [
+      208
+    ],
+    "isolatedPointCount": 0,
+    "width": 15,
+    "height": 24
+  },
+  {
+    "asset": "level-014-EnchantedTreePiece14",
+    "levelID": 14,
+    "difficulty": "veryHard",
+    "catalogDifficulty": "veryHard",
+    "gridSize": 40,
+    "pointCount": 959,
+    "componentSizes": [
+      959
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 40
+  },
+  {
+    "asset": "level-015-EnchantedTreePiece15",
+    "levelID": 15,
+    "difficulty": "easy",
+    "catalogDifficulty": "easy",
+    "gridSize": 24,
+    "pointCount": 312,
+    "componentSizes": [
+      312
+    ],
+    "isolatedPointCount": 0,
+    "width": 24,
+    "height": 17
+  },
+  {
+    "asset": "level-016-EnchantedTreePiece16",
+    "levelID": 16,
+    "difficulty": "hard",
+    "catalogDifficulty": "hard",
+    "gridSize": 30,
+    "pointCount": 356,
+    "componentSizes": [
+      356
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 21
+  },
+  {
+    "asset": "level-017-EnchantedTreePiece17",
+    "levelID": 17,
+    "difficulty": "veryHard",
+    "catalogDifficulty": "veryHard",
+    "gridSize": 40,
+    "pointCount": 675,
+    "componentSizes": [
+      675
+    ],
+    "isolatedPointCount": 0,
+    "width": 27,
+    "height": 40
+  },
+  {
+    "asset": "level-018-EnchantedTreePiece18",
+    "levelID": 18,
+    "difficulty": "easy",
+    "catalogDifficulty": "easy",
+    "gridSize": 24,
+    "pointCount": 251,
+    "componentSizes": [
+      251
+    ],
+    "isolatedPointCount": 0,
+    "width": 24,
+    "height": 19
+  },
+  {
+    "asset": "level-019-EnchantedTreePiece19",
+    "levelID": 19,
+    "difficulty": "hard",
+    "catalogDifficulty": "hard",
+    "gridSize": 30,
+    "pointCount": 333,
+    "componentSizes": [
+      333
+    ],
+    "isolatedPointCount": 0,
+    "width": 22,
+    "height": 30
+  },
+  {
+    "asset": "level-020-EnchantedTreePiece20",
+    "levelID": 20,
+    "difficulty": "easy",
+    "catalogDifficulty": "veryHard",
+    "gridSize": 24,
+    "pointCount": 237,
+    "componentSizes": [
+      237
+    ],
+    "isolatedPointCount": 0,
+    "width": 16,
+    "height": 24
+  },
+  {
+    "asset": "level-021-EnchantedTreePiece21",
+    "levelID": 21,
+    "difficulty": "easy",
+    "catalogDifficulty": "hard",
+    "gridSize": 24,
+    "pointCount": 305,
+    "componentSizes": [
+      305
+    ],
+    "isolatedPointCount": 0,
+    "width": 24,
+    "height": 21
+  },
+  {
+    "asset": "level-022-EnchantedTreePiece22",
+    "levelID": 22,
+    "difficulty": "hard",
+    "catalogDifficulty": "hard",
+    "gridSize": 30,
+    "pointCount": 628,
+    "componentSizes": [
+      628
+    ],
+    "isolatedPointCount": 0,
+    "width": 30,
+    "height": 30
+  },
+  {
+    "asset": "level-023-EnchantedTreePiece23",
+    "levelID": 23,
+    "difficulty": "easy",
+    "catalogDifficulty": "nightmare",
+    "gridSize": 24,
+    "pointCount": 164,
+    "componentSizes": [
+      164
+    ],
+    "isolatedPointCount": 0,
+    "width": 11,
+    "height": 24
+  },
+  {
+    "asset": "level-024-EnchantedTreePiece24",
+    "levelID": 24,
+    "difficulty": "veryHard",
+    "catalogDifficulty": "veryHard",
+    "gridSize": 40,
+    "pointCount": 642,
+    "componentSizes": [
+      642
+    ],
+    "isolatedPointCount": 0,
+    "width": 36,
+    "height": 40
+  },
+  {
+    "asset": "level-025-EnchantedTreeComplete",
+    "levelID": 25,
+    "difficulty": "nightmare",
+    "catalogDifficulty": "nightmare",
+    "gridSize": 50,
+    "pointCount": 1647,
+    "componentSizes": [
+      1646,
+      1
+    ],
+    "isolatedPointCount": 1,
+    "width": 49,
+    "height": 50
+  }
+]

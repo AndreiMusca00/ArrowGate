@@ -41,8 +41,8 @@ extension Color {
     }
 }
 
-/// A chapter as it appears in the two-column Gallery collection.
-struct ChapterGalleryCard: View {
+/// A chapter as it appears in the two-column Collection grid.
+struct ChapterCollectionCard: View {
     let chapter: ChapterDefinition
     let completed: Int
     let unlocked: Bool
@@ -82,6 +82,45 @@ struct ChapterGalleryCard: View {
     }
 
     private var unlockedContent: some View {
+        Group {
+            if let assembly = chapter.assembly {
+                assemblyCard(assembly)
+            } else {
+                standardUnlockedContent
+            }
+        }
+    }
+
+    private func assemblyCard(_ assembly: ChapterAssemblyDefinition) -> some View {
+        VStack(spacing: 4) {
+            ChapterAssemblyFigure(
+                assembly: assembly,
+                revealedPieces: Set(0..<min(completed, assembly.pieceCount)),
+                revealsFinalArtwork: completed >= chapter.levelCount
+            )
+            .padding(.top, 8)
+
+            HStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("CHAPTER \(chapter.id)")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .tracking(1)
+                        .foregroundColor(style.primary)
+                    Text(chapter.name)
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundColor(GameStyle.ink)
+                }
+                Spacer()
+                Text("\(completed) / \(chapter.levelCount)")
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundColor(GameStyle.muted)
+            }
+            .padding(.horizontal, 15)
+            .padding(.bottom, 13)
+        }
+    }
+
+    private var standardUnlockedContent: some View {
         ZStack(alignment: .topLeading) {
             Text(style.decorations.joined(separator: "  "))
                 .font(.system(size: 17, weight: .medium, design: .rounded))
@@ -130,87 +169,5 @@ struct ChapterGalleryCard: View {
                 .foregroundColor(GameStyle.muted)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-/// The collectible grid shown after opening a chapter.
-struct ChapterGalleryDetail: View {
-    let chapter: ChapterDefinition
-    @ObservedObject var store: ProgressStore
-
-    @Environment(\.dismiss) private var dismiss
-    private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
-    private var style: ChapterVisualStyle { ChapterVisualStyle(chapter.style) }
-
-    var body: some View {
-        NavigationStack {
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVGrid(columns: columns, spacing: 14) {
-                    ForEach(LevelRepository.levels(in: chapter)) { level in
-                        GalleryCollectibleCard(
-                            level: level,
-                            collected: store.completedLevels.contains(level.id)
-                        )
-                    }
-                }
-                .padding(20)
-            }
-            .background(style.background.opacity(style.detailBackgroundOpacity).ignoresSafeArea())
-            .navigationTitle(chapter.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-        .preferredColorScheme(.light)
-    }
-}
-
-/// A chapter background section in the Journey map.
-struct JourneyChapterBackdrop: View {
-    let chapter: ChapterDefinition
-    let locked: Bool
-
-    private var style: ChapterVisualStyle { ChapterVisualStyle(chapter.style) }
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: style.mapCornerRadius)
-                .fill(LinearGradient(
-                    colors: [style.background.opacity(style.mapBackgroundOpacity), Color.white.opacity(0.30)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-                .overlay(
-                    RoundedRectangle(cornerRadius: style.mapCornerRadius)
-                        .stroke(style.primary.opacity(style.mapBorderOpacity))
-                )
-
-            HStack(spacing: 10) {
-                Image(systemName: locked ? "lock.fill" : chapter.symbol)
-                    .foregroundColor(style.primary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("CHAPTER \(chapter.id)")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .tracking(1)
-                    Text(chapter.name)
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                }
-            }
-            .foregroundColor(GameStyle.ink)
-            .padding(.horizontal, 22)
-            .padding(.top, 18)
-
-            Text(style.decorations.joined(separator: "   "))
-                .font(.system(size: 17, weight: .medium, design: .rounded))
-                .foregroundColor(style.secondary.opacity(0.20))
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.top, 22)
-                .padding(.trailing, 20)
-        }
-        .opacity(locked ? 0.72 : 1)
-        .accessibilityHidden(true)
     }
 }

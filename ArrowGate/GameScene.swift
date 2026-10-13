@@ -693,8 +693,13 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
             let artworkSize = min(boardWidth, boardHeight) * 0.94
             let artwork: SKNode
             if let artworkName = level.completionArtwork {
-                let sprite = SKSpriteNode(imageNamed: artworkName)
-                sprite.size = CGSize(width: artworkSize, height: artworkSize)
+                let texture = SKTexture(imageNamed: artworkName)
+                let sprite = SKSpriteNode(texture: texture)
+                let naturalSize = texture.size()
+                let longestSide = max(naturalSize.width, naturalSize.height)
+                let fittedScale = longestSide > 0 ? artworkSize / longestSide : 1
+                sprite.size = CGSize(width: naturalSize.width * fittedScale,
+                                     height: naturalSize.height * fittedScale)
                 artwork = sprite
             } else {
                 let emoji = SKLabelNode(fontNamed: "AppleColorEmoji")

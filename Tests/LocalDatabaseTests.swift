@@ -43,7 +43,7 @@ final class LocalDatabaseTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suite) }
         let migrated = ProgressStore(defaults: defaults, database: try LocalDatabase(url: url))
         XCTAssertEqual(migrated.unlocked, 3)
-        XCTAssertEqual(migrated.savedChapters.map(\.id), [1, 2])
+        XCTAssertEqual(migrated.savedChapters.map(\.id), [1])
         XCTAssertEqual(migrated.savedLevels.count, LevelRepository.count)
     }
     func testLevelsProgressAndPreferencesSurviveReload() throws {
@@ -56,7 +56,7 @@ final class LocalDatabaseTests: XCTestCase {
         let database = try LocalDatabase(url: url)
         let store = ProgressStore(defaults: defaults, database: database)
         XCTAssertEqual(store.savedLevels.count, LevelRepository.count)
-        XCTAssertEqual(store.savedChapters.count, 2)
+        XCTAssertEqual(store.savedChapters.count, 1)
         XCTAssertEqual(store.hints, 3)
         XCTAssertEqual(store.reserveLives, 1)
         XCTAssertTrue(store.consumeHint())
@@ -84,7 +84,7 @@ final class LocalDatabaseTests: XCTestCase {
         XCTAssertNil(try reopened.metadata("bestTime.6"))
         XCTAssertNil(try reopened.metadata("campaignCompleted"))
         XCTAssertEqual(try reopened.levels().count, LevelRepository.count)
-        XCTAssertEqual(try reopened.chapters().count, 2)
+        XCTAssertEqual(try reopened.chapters().count, 1)
         XCTAssertFalse(restored.sound)
         let resetStore = ProgressStore(defaults: defaults, database: reopened)
         XCTAssertEqual(resetStore.unlocked, 1)

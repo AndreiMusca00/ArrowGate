@@ -7,61 +7,38 @@ struct LiquidGlassNavBar: View {
     @Binding var selection: HomeScreen
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             glassSurface
-                .frame(height: 72)
-                .padding(.top, 20)
 
             HStack(spacing: 0) {
                 destinationButton(
-                    title: "JOURNEY",
-                    icon: "point.bottomleft.forward.to.point.topright.scurvepath",
-                    selected: selection == .journey,
-                    action: { navigate(to: .journey) }
+                    title: "COLLECTION",
+                    icon: "square.grid.2x2.fill",
+                    selected: selection == .collection,
+                    action: { navigate(to: .collection) }
                 )
-                .accessibilityIdentifier("journeyTab")
-
-                Color.clear.frame(width: 92, height: 1)
+                .accessibilityIdentifier("collectionTab")
 
                 destinationButton(
-                    title: "GALLERY",
-                    icon: "face.smiling.inverse",
-                    selected: selection == .gallery,
-                    action: { navigate(to: .gallery) }
+                    title: "HOME",
+                    icon: "house.fill",
+                    selected: selection == .menu,
+                    action: { navigate(to: .menu) }
                 )
-                .accessibilityIdentifier("galleryTab")
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 34)
+                .accessibilityIdentifier("homeTab")
 
-            homeButton
+                destinationButton(
+                    title: "SETTINGS",
+                    icon: "gearshape.fill",
+                    selected: selection == .settings,
+                    action: { navigate(to: .settings) }
+                )
+                .accessibilityIdentifier("settingsTab")
+            }
+            .padding(.horizontal, 10)
         }
-        .frame(height: 98)
+        .frame(height: 70)
         .accessibilityElement(children: .contain)
-    }
-
-    private var homeButton: some View {
-        Button { navigate(to: .menu) } label: {
-            VStack(spacing: 3) {
-                ZStack {
-                    homeSurface
-                    Image(systemName: "house.fill")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.white)
-                }
-                .frame(width: 64, height: 64)
-
-                Text("HOME")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .tracking(0.7)
-                    .foregroundColor(GameStyle.accent)
-            }
-        }
-        .buttonStyle(.plain)
-        .contentShape(Rectangle())
-        .accessibilityLabel("Home")
-        .accessibilityAddTraits(selection == .menu ? .isSelected : [])
-        .accessibilityIdentifier("homeTab")
     }
 
     private func destinationButton(title: String, icon: String, selected: Bool,
@@ -101,26 +78,6 @@ struct LiquidGlassNavBar: View {
                 .fill(.ultraThinMaterial)
                 .overlay(glassHighlight)
                 .shadow(color: GameStyle.ink.opacity(0.08), radius: 18, y: 8)
-        }
-    }
-
-    @ViewBuilder private var homeSurface: some View {
-        if #available(iOS 26.0, *) {
-            Color.clear
-                .glassEffect(.regular.tint(GameStyle.accent).interactive(), in: Circle())
-                .overlay(Circle().stroke(Color.white.opacity(0.52), lineWidth: 1))
-                .shadow(color: GameStyle.accent.opacity(0.22), radius: 12, y: 5)
-        } else {
-            Circle()
-                .fill(GameStyle.accent)
-                .overlay(
-                    Circle().fill(
-                        LinearGradient(colors: [Color.white.opacity(0.18), .clear],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
-                )
-                .overlay(Circle().stroke(Color.white.opacity(0.58), lineWidth: 1))
-                .shadow(color: GameStyle.accent.opacity(0.24), radius: 12, y: 5)
         }
     }
 

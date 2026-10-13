@@ -37,14 +37,14 @@ enum GameStyle {
     static let portalWell = UIColor(red: 0.14, green: 0.20, blue: 0.23, alpha: 1)
     static let introDuration: TimeInterval = 0.85
     static func uiColor(_ color: ArrowColor) -> UIColor {
-        switch color {
-        case .yellow: return UIColor(red: 0.73, green: 0.46, blue: 0.04, alpha: 1)
-        case .blue: return UIColor(red: 0.30, green: 0.22, blue: 0.43, alpha: 1)
-        case .green: return UIColor(red: 0.03, green: 0.37, blue: 0.39, alpha: 1)
-        case .red: return UIColor(red: 0.82, green: 0.30, blue: 0.28, alpha: 1)
-        case .brown: return UIColor(red: 0.31, green: 0.15, blue: 0.06, alpha: 1)
-        case .cyan: return UIColor(red: 0.19, green: 0.67, blue: 0.78, alpha: 1)
-        }
+        let value = color.hex.dropFirst()
+        guard let rgb = UInt64(value, radix: 16) else { return .black }
+        return UIColor(
+            red: CGFloat((rgb >> 16) & 0xFF) / 255,
+            green: CGFloat((rgb >> 8) & 0xFF) / 255,
+            blue: CGFloat(rgb & 0xFF) / 255,
+            alpha: 1
+        )
     }
     static func color(_ color: ArrowColor) -> Color { Color(uiColor: uiColor(color)) }
 }

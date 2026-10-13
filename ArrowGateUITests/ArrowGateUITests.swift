@@ -70,9 +70,9 @@ final class ArrowGateUITests: XCTestCase {
                 if level.number == 1 { capture("victory") }
                 app.buttons["nextLevel"].tap()
             } else {
-                XCTAssertTrue(app.staticTexts["Gallery complete!"].waitForExistence(timeout: 5)); capture("campaign-complete")
-                app.buttons["Open gallery"].tap()
-                XCTAssertTrue(app.staticTexts["emojiGallery"].waitForExistence(timeout: 5))
+                XCTAssertTrue(app.staticTexts["Collection complete!"].waitForExistence(timeout: 5)); capture("campaign-complete")
+                app.buttons["Open collection"].tap()
+                XCTAssertTrue(app.staticTexts["collectionPage"].waitForExistence(timeout: 5))
                 app.buttons["homeTab"].tap()
                 XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 5))
                 XCTAssertEqual(app.buttons["play"].label, "Level \(levels.count)")
@@ -101,43 +101,58 @@ final class ArrowGateUITests: XCTestCase {
             app.launchArguments = ["-ui-testing", "-reset-test-progress", "-skip-board-intro"]
         }
     }
-    func testJourneyMapAndGalleryReflectCollectedEmoji() throws {
+    func testCollectionExpandsArtworkAndReflectsProgress() throws {
         let allLevels = try fixtures()
         let level = try XCTUnwrap(allLevels.first)
         app.launch(); XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))
-        app.buttons["journeyTab"].tap()
-        XCTAssertTrue(app.staticTexts["journeyMap"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["0 / \(allLevels.count)"].exists); capture("journey-empty")
-        XCTAssertTrue(app.buttons["mapLevel14"].label.contains("Hard"))
-        XCTAssertTrue(app.buttons["mapLevel17"].label.contains("Very Hard"))
-        XCTAssertTrue(app.buttons["mapLevel20"].label.contains("Nightmare"))
-        app.buttons["galleryTab"].tap()
-        XCTAssertTrue(app.staticTexts["emojiGallery"].waitForExistence(timeout: 5)); capture("gallery-empty")
+        app.buttons["collectionTab"].tap()
+        XCTAssertTrue(app.staticTexts["collectionPage"].waitForExistence(timeout: 5)); capture("collection-empty")
         let chapterOne = app.descendants(matching: .any)["chapterCard1"]
-        let chapterTwo = app.descendants(matching: .any)["chapterCard2"]
         XCTAssertTrue(chapterOne.exists)
-        XCTAssertEqual(chapterTwo.label, "Chapter 2, locked")
-        app.buttons["journeyTab"].tap(); app.buttons["mapPlay"].tap()
+        chapterOne.tap()
+        XCTAssertTrue(app.buttons["expandedCollectionArtwork"].waitForExistence(timeout: 5))
+        capture("collection-expanded")
+        app.buttons["expandedCollectionArtwork"].tap()
+        app.buttons["homeTab"].tap(); app.buttons["play"].tap()
         XCTAssertTrue(board.waitForExistence(timeout: 5))
         for id in level.solution { tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level) }
         XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 6))
-        app.buttons["nextLevel"].tap()
-        XCTAssertTrue(board.waitForExistence(timeout: 5))
-        XCTAssertTrue(summary.contains("Level 2;"))
-        app.buttons["back"].tap()
-        app.buttons["journeyTab"].tap()
-        XCTAssertTrue(app.staticTexts["journeyMap"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["1 / \(allLevels.count)"].exists); capture("journey-one-collected")
-        app.buttons["galleryTab"].tap()
+        app.buttons["Main menu"].tap()
+        app.buttons["collectionTab"].tap()
+        XCTAssertTrue(app.staticTexts["1 collected"].waitForExistence(timeout: 5))
         app.descendants(matching: .any)["chapterCard1"].tap()
-        XCTAssertTrue(app.staticTexts["Happy"].waitForExistence(timeout: 5)); capture("gallery-one-collected")
+        XCTAssertTrue(app.buttons["expandedCollectionArtwork"].waitForExistence(timeout: 5))
+        capture("collection-one-collected")
+    }
+
+    func testCollectionExpansionIsCentered() {
+        app.launch()
+        XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))
+        app.buttons["collectionTab"].tap()
+        XCTAssertTrue(app.staticTexts["collectionPage"].waitForExistence(timeout: 5))
+
+        let chapter = app.descendants(matching: .any)["chapterCard1"]
+        XCTAssertTrue(chapter.waitForExistence(timeout: 5))
+        let sourceFrame = chapter.frame
+        chapter.tap()
+
+        let expandedArtwork = app.buttons["expandedCollectionArtwork"]
+        XCTAssertTrue(expandedArtwork.waitForExistence(timeout: 5))
+        let expandedCard = app.descendants(matching: .any)["expandedCollectionCard"]
+        XCTAssertTrue(expandedCard.waitForExistence(timeout: 5))
+
+        let screenFrame = app.frame
+        capture("collection-expanded-centered")
+        XCTAssertGreaterThan(expandedCard.frame.width, sourceFrame.width * 1.7)
+        XCTAssertEqual(expandedCard.frame.midX, screenFrame.midX, accuracy: 2)
+        XCTAssertEqual(expandedCard.frame.midY, screenFrame.midY, accuracy: 2)
     }
 
     func testLiquidGlassNavigationAndDirectPlay() {
         app.launch()
         XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["journeyTab"].exists)
-        XCTAssertTrue(app.buttons["galleryTab"].exists)
+        XCTAssertTrue(app.buttons["collectionTab"].exists)
+        XCTAssertTrue(app.buttons["settingsTab"].exists)
         XCTAssertTrue(app.otherElements["eventDailySprint"].exists)
         XCTAssertTrue(app.otherElements["eventHalloween"].exists)
         XCTAssertTrue(app.otherElements["eventSpeedRun"].exists)
@@ -145,26 +160,26 @@ final class ArrowGateUITests: XCTestCase {
 
         app.swipeRight()
         Thread.sleep(forTimeInterval: 0.5)
-        XCTAssertTrue(app.staticTexts["journeyMap"].isHittable)
-        capture("liquid-glass-journey")
+        XCTAssertTrue(app.staticTexts["collectionPage"].isHittable)
+        capture("liquid-glass-collection")
 
         app.swipeLeft()
         Thread.sleep(forTimeInterval: 0.5)
         XCTAssertTrue(app.buttons["play"].isHittable)
         app.swipeLeft()
         Thread.sleep(forTimeInterval: 0.5)
-        XCTAssertTrue(app.staticTexts["emojiGallery"].isHittable)
-        capture("liquid-glass-gallery")
+        XCTAssertTrue(app.staticTexts["settingsPage"].isHittable)
+        capture("liquid-glass-settings")
 
         app.swipeRight()
         Thread.sleep(forTimeInterval: 0.5)
         XCTAssertTrue(app.buttons["play"].isHittable)
-        app.buttons["journeyTab"].tap()
+        app.buttons["collectionTab"].tap()
         Thread.sleep(forTimeInterval: 0.5)
-        XCTAssertTrue(app.staticTexts["journeyMap"].isHittable)
-        app.buttons["galleryTab"].tap()
+        XCTAssertTrue(app.staticTexts["collectionPage"].isHittable)
+        app.buttons["settingsTab"].tap()
         Thread.sleep(forTimeInterval: 0.5)
-        XCTAssertTrue(app.staticTexts["emojiGallery"].isHittable)
+        XCTAssertTrue(app.staticTexts["settingsPage"].isHittable)
         app.buttons["homeTab"].tap()
         Thread.sleep(forTimeInterval: 0.5)
         XCTAssertTrue(app.buttons["play"].isHittable)
@@ -336,10 +351,11 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertTrue(app.buttons["watchForLife"].waitForExistence(timeout: 5))
         app.buttons["watchForLife"].tap(); XCTAssertEqual(lives, "1"); XCTAssertEqual(reserveLives, "0")
         app.buttons["pause"].tap(); app.buttons["pauseRestart"].tap(); XCTAssertEqual(lives, "3")
-        app.buttons["back"].tap(); app.buttons["Settings"].tap()
+        app.buttons["back"].tap(); app.buttons["settingsTab"].tap()
         XCTAssertTrue(app.switches["Sound"].waitForExistence(timeout: 5)); capture("settings")
-        app.switches["Sound"].tap(); app.buttons["Done"].tap(); app.buttons["Settings"].tap()
-        app.buttons["Reset Progress"].tap(); app.buttons["Reset Progress"].firstMatch.tap(); app.buttons["Done"].tap()
+        app.switches["Sound"].tap()
+        app.buttons["Reset Progress"].tap(); app.buttons["Reset Progress"].firstMatch.tap()
+        app.buttons["homeTab"].tap()
         XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons["play"].label, "Level 1")
     }
@@ -347,27 +363,27 @@ final class ArrowGateUITests: XCTestCase {
         let level = try XCTUnwrap(fixtures().first)
         app.launch()
         XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["journeyTab"].exists)
-        XCTAssertTrue(app.buttons["galleryTab"].exists)
+        XCTAssertTrue(app.buttons["collectionTab"].exists)
+        XCTAssertTrue(app.buttons["settingsTab"].exists)
         app.buttons["play"].tap()
         XCTAssertTrue(board.waitForExistence(timeout: 10))
         for id in level.solution { tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level) }
         XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 5))
         app.buttons["Main menu"].tap()
         XCTAssertEqual(app.buttons["play"].label, "Level 2")
-        app.buttons["Settings"].tap()
+        app.buttons["settingsTab"].tap()
         for name in ["Sound", "Haptics"] {
             app.switches[name].coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
             XCTAssertEqual(app.switches[name].value as? String, "1")
         }
-        app.buttons["Done"].tap()
+        app.buttons["homeTab"].tap()
         app.terminate(); app.launchArguments = ["-ui-testing", "-skip-board-intro"]; app.launch()
         XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))
         XCTAssertEqual(app.buttons["play"].label, "Level 2")
-        app.buttons["Settings"].tap()
+        app.buttons["settingsTab"].tap()
         XCTAssertEqual(app.switches["Sound"].value as? String, "1")
         XCTAssertEqual(app.switches["Haptics"].value as? String, "1")
-        app.buttons["Done"].tap(); app.buttons["play"].tap()
+        app.buttons["homeTab"].tap(); app.buttons["play"].tap()
         XCTAssertTrue(board.waitForExistence(timeout: 10))
         XCTAssertTrue(summary.contains("Level 2;"))
     }

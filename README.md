@@ -1,6 +1,6 @@
 # Arrow Gate
 
-Joc pentru iPhone, în SwiftUI și SpriteKit. Proiectul conține o campanie locală de 40 de niveluri.
+Joc pentru iPhone, în SwiftUI și SpriteKit. Prototipul conține un capitol local cu 25 de niveluri.
 
 ## Rulare
 
@@ -27,10 +27,10 @@ UI-ul folosește fundal alb cald, puncte de ghidaj și săgeți subțiri.
 Nivelul apare întâi complet, apoi camera se apropie de centru. Tabla se poate deplasa și mări,
 cu limite controlate de joc. Tutorialul nu are limită de timp.
 
-Catalogul declară 50 de niveluri pentru fiecare capitol. Culorile, decorațiile și dimensiunile
-vizuale ale unui capitol vin din câmpul `style`, iar animația nodului fiecărui nivel vine din
-Stările și animațiile nodurilor de nivel sunt definite central în Swift, în
-`LevelComponents.swift`. Un capitol nou nu necesită adăugarea unui caz nou în codul Swift.
+Catalogul declară momentan un singur capitol de 25 de niveluri. Culorile, decorațiile și
+dimensiunile vizuale vin din câmpul `style`. Stările și animațiile nodurilor de nivel sunt
+definite central în Swift, în `LevelComponents.swift`. Structura rămâne pregătită pentru
+adăugarea ulterioară a altor capitole din catalog.
 
 ## Salvare locală
 
@@ -51,4 +51,4 @@ Testele folosesc o bază și preferințe separate de cele ale jucătorului.
 ## Version control
 
 `.gitignore` exclude fișierele personale Xcode, cache-urile, buildurile și rezultatele testelor.
-Proiectul nu conține generatoare, servicii online, ecrane experimentale sau istoricul partidelor.
+Generatorul local din `Design/Campaign` reproduce exact catalogul și asset-urile capitolului curent.

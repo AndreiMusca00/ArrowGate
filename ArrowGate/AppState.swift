@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-enum HomeScreen { case menu, journey, gallery }
+enum HomeScreen { case collection, menu, settings }
 
 @MainActor
 final class AppState: ObservableObject {
@@ -85,7 +85,6 @@ final class AppState: ObservableObject {
         game = nil
         homeScreen = .menu
     }
-    func showJourney() { game = nil; homeScreen = .journey }
-    func showGallery() { game = nil; homeScreen = .gallery }
+    func showCollection() { game = nil; homeScreen = .collection }
     func show(_ screen: HomeScreen) { game = nil; homeScreen = screen }
 }
