@@ -96,6 +96,35 @@ final class LocalDatabaseTests: XCTestCase {
         XCTAssertEqual(resetStore.unlocked, 1)
         XCTAssertEqual(resetStore.hints, 3)
     }
+    func testUnfinishedLevelSessionSurvivesReloadAndClearsOnCompletion() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let suite = "LocalDBSession.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let url = directory.appendingPathComponent("game.sqlite")
+        let level = LevelRepository.level(1)
+        let removed = try XCTUnwrap(level.arrows.first?.id)
+        let snapshot = LevelSessionSnapshot(
+            levelID: level.id,
+            removedArrowIDs: [removed],
+            penalizedArrowIDs: Set(level.arrows.dropFirst().prefix(1).map(\.id)),
+            hearts: 2,
+            mistakes: 1,
+            elapsed: 18.4,
+            hintsUsed: 1
+        )
+
+        let store = ProgressStore(defaults: defaults, database: try LocalDatabase(url: url))
+        store.saveSession(snapshot)
+        XCTAssertEqual(store.activeSession, snapshot)
+
+        let reopened = ProgressStore(defaults: defaults, database: try LocalDatabase(url: url))
+        XCTAssertEqual(reopened.session(for: level), snapshot)
+        reopened.complete(level.id, time: 21)
+        XCTAssertNil(reopened.activeSession)
+        XCTAssertNil(try LocalDatabase(url: url).activeSession())
+    }
     func testMilestoneRewardsArePersistedAndGrantedOnce() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

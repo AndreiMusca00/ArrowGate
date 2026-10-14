@@ -62,14 +62,30 @@ struct FireDifficultyButton<Label: View>: View {
         Button(action: action) {
             GeometryReader { geometry in
                 ZStack {
-                    FireParticleLayer(
-                        layer: .flames,
-                        settings: settings,
-                        isAnimating: shouldAnimate
-                    )
+                    if settings.isIntense {
+                        FireParticleLayer(
+                            layer: .flames,
+                            settings: settings,
+                            isAnimating: shouldAnimate
+                        )
+                    }
 
                     RoundedRectangle(cornerRadius: settings.cornerRadius, style: .continuous)
                         .fill(settings.backgroundGradient)
+                        .overlay {
+                            if settings.difficulty == .hard {
+                                HardMeshSurface(
+                                    isAnimating: shouldAnimate,
+                                    reduceMotion: reduceMotion
+                                )
+                                .clipShape(
+                                    RoundedRectangle(
+                                        cornerRadius: settings.cornerRadius,
+                                        style: .continuous
+                                    )
+                                )
+                            }
+                        }
                         .overlay {
                             EmberSurface(
                                 settings: settings,
@@ -147,7 +163,7 @@ private struct FireDifficultySettings: Equatable {
 
     private static func preset(for difficulty: LevelDifficulty) -> FireDifficultySettings {
         switch difficulty {
-        case .veryHard:
+        case .veryHard, .nightmare:
             return FireDifficultySettings(
                 rawDifficulty: difficulty,
                 flameHeight: 22,
@@ -161,8 +177,8 @@ private struct FireDifficultySettings: Equatable {
                 rawDifficulty: difficulty,
                 flameHeight: 13,
                 flameIntensity: 0.58,
-                sparkBirthRate: 8,
-                glowIntensity: 0.55,
+                sparkBirthRate: 13,
+                glowIntensity: 0.62,
                 pulseSpeed: 1.35
             )
         }
@@ -184,28 +200,81 @@ private struct FireDifficultySettings: Equatable {
         self.pulseSpeed = pulseSpeed
     }
 
+    var isIntense: Bool {
+        difficulty == .veryHard || difficulty == .nightmare
+    }
+
     var backgroundGradient: LinearGradient {
-        LinearGradient(
-            colors: difficulty == .veryHard
-                ? [
-                    Color(red: 0.43, green: 0.055, blue: 0.015),
-                    Color(red: 0.79, green: 0.19, blue: 0.015),
-                    Color(red: 0.36, green: 0.025, blue: 0.01)
-                ]
-                : [
-                    Color(red: 0.72, green: 0.25, blue: 0.015),
-                    Color(red: 0.92, green: 0.43, blue: 0.025),
-                    Color(red: 0.54, green: 0.12, blue: 0.01)
-                ],
+        let colors: [Color]
+        switch difficulty {
+        case .nightmare:
+            colors = [
+                Color(red: 0.19, green: 0.015, blue: 0.31),
+                Color(red: 0.47, green: 0.07, blue: 0.62),
+                Color(red: 0.10, green: 0.005, blue: 0.20)
+            ]
+        case .veryHard:
+            colors = [
+                Color(red: 0.43, green: 0.055, blue: 0.015),
+                Color(red: 0.79, green: 0.19, blue: 0.015),
+                Color(red: 0.36, green: 0.025, blue: 0.01)
+            ]
+        default:
+            colors = [
+                Color(red: 0.48, green: 0.20, blue: 0.015),
+                Color(red: 0.91, green: 0.52, blue: 0.045),
+                Color(red: 0.65, green: 0.27, blue: 0.012)
+            ]
+        }
+        return LinearGradient(
+            colors: colors,
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
 
     var hotColor: Color {
-        difficulty == .veryHard
-            ? Color(red: 1.0, green: 0.67, blue: 0.08)
-            : Color(red: 1.0, green: 0.56, blue: 0.035)
+        switch difficulty {
+        case .nightmare: return Color(red: 0.89, green: 0.35, blue: 1.0)
+        case .veryHard: return Color(red: 1.0, green: 0.67, blue: 0.08)
+        default: return Color(red: 1.0, green: 0.56, blue: 0.035)
+        }
+    }
+
+    var flameColors: [UIColor] {
+        switch difficulty {
+        case .nightmare:
+            return [
+                UIColor(red: 0.94, green: 0.68, blue: 1.0, alpha: 1),
+                UIColor(red: 0.66, green: 0.16, blue: 0.88, alpha: 1),
+                UIColor(red: 0.24, green: 0.015, blue: 0.42, alpha: 0)
+            ]
+        default:
+            return [
+                UIColor(red: 1.0, green: 0.88, blue: 0.25, alpha: 1),
+                UIColor(red: 1.0, green: 0.38, blue: 0.025, alpha: 1),
+                UIColor(red: 0.56, green: 0.045, blue: 0.008, alpha: 0)
+            ]
+        }
+    }
+
+    var sparkColor: UIColor {
+        switch difficulty {
+        case .nightmare: return UIColor(red: 0.82, green: 0.28, blue: 1.0, alpha: 1)
+        case .veryHard: return UIColor(red: 1.0, green: 0.18, blue: 0.10, alpha: 1)
+        default: return UIColor(red: 1.0, green: 0.62, blue: 0.08, alpha: 1)
+        }
+    }
+
+    var borderColors: [Color] {
+        if difficulty == .nightmare {
+            return [
+                Color(red: 0.93, green: 0.67, blue: 1.0),
+                Color(red: 0.73, green: 0.22, blue: 0.94),
+                Color(red: 0.43, green: 0.06, blue: 0.67)
+            ]
+        }
+        return [.yellow, hotColor, .orange]
     }
 }
 
@@ -221,6 +290,57 @@ private struct FireDifficultyPressStyle: ButtonStyle {
 private enum FireParticleLayerKind {
     case flames
     case sparks
+}
+
+/// Soft moving colour fields give Hard a richer surface while every pixel stays
+/// clipped inside the button. The stronger difficulties keep their outer fire.
+private struct HardMeshSurface: View {
+    let isAnimating: Bool
+    let reduceMotion: Bool
+
+    var body: some View {
+        if reduceMotion {
+            mesh(at: 0.35)
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: !isAnimating)) { timeline in
+                mesh(at: timeline.date.timeIntervalSinceReferenceDate)
+            }
+        }
+    }
+
+    private func mesh(at time: TimeInterval) -> some View {
+        GeometryReader { geometry in
+            let size = geometry.size
+            ZStack {
+                RadialGradient(
+                    colors: [Color(red: 1.0, green: 0.82, blue: 0.25).opacity(0.62), .clear],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: max(36, size.width * 0.42)
+                )
+                .frame(width: size.width * 0.92, height: size.height * 2.0)
+                .position(
+                    x: size.width * CGFloat(0.26 + 0.08 * sin(time * 0.74)),
+                    y: size.height * CGFloat(0.38 + 0.14 * cos(time * 0.62))
+                )
+
+                RadialGradient(
+                    colors: [Color(red: 0.95, green: 0.28, blue: 0.025).opacity(0.42), .clear],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: max(34, size.width * 0.38)
+                )
+                .frame(width: size.width * 0.88, height: size.height * 1.9)
+                .position(
+                    x: size.width * CGFloat(0.73 + 0.07 * cos(time * 0.58)),
+                    y: size.height * CGFloat(0.62 + 0.12 * sin(time * 0.69))
+                )
+            }
+            .blendMode(.screen)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
 }
 
 private struct FireParticleLayer: View {
@@ -420,20 +540,16 @@ private final class FireParticleScene: SKScene {
         emitter.particleSpeed = settings.flameHeight * 1.32
         emitter.particleSpeedRange = settings.flameHeight * 0.72
         emitter.particleRotationRange = .pi
-        emitter.particleScale = settings.difficulty == .veryHard ? 0.34 : 0.25
-        emitter.particleScaleRange = settings.difficulty == .veryHard ? 0.18 : 0.12
+        emitter.particleScale = settings.isIntense ? 0.34 : 0.25
+        emitter.particleScaleRange = settings.isIntense ? 0.18 : 0.12
         emitter.particleScaleSpeed = -0.18
         emitter.particleAlpha = 0.82
         emitter.particleAlphaRange = 0.16
         emitter.particleAlphaSpeed = -0.72
-        emitter.yAcceleration = settings.difficulty == .veryHard ? 18 : 11
+        emitter.yAcceleration = settings.isIntense ? 18 : 11
         emitter.particleColorBlendFactor = 1
         emitter.particleColorSequence = SKKeyframeSequence(
-            keyframeValues: [
-                UIColor(red: 1.0, green: 0.88, blue: 0.25, alpha: 1),
-                UIColor(red: 1.0, green: 0.38, blue: 0.025, alpha: 1),
-                UIColor(red: 0.56, green: 0.045, blue: 0.008, alpha: 0)
-            ],
+            keyframeValues: settings.flameColors,
             times: [0, 0.42, 1]
         )
         return emitter
@@ -449,21 +565,19 @@ private final class FireParticleScene: SKScene {
         emitter.particleTexture = FireParticleTextures.spark
         emitter.particleBlendMode = .add
         emitter.particleBirthRate = settings.sparkBirthRate
-        emitter.particleLifetime = settings.difficulty == .veryHard ? 1.15 : 0.92
+        emitter.particleLifetime = settings.isIntense ? 1.15 : 0.92
         emitter.particleLifetimeRange = 0.42
         emitter.emissionAngle = .pi / 2
         emitter.emissionAngleRange = .pi * 0.13
-        emitter.particleSpeed = settings.difficulty == .veryHard ? 29 : 21
+        emitter.particleSpeed = settings.isIntense ? 29 : 21
         emitter.particleSpeedRange = 16
-        emitter.particleScale = settings.difficulty == .veryHard ? 0.21 : 0.15
+        emitter.particleScale = settings.isIntense ? 0.21 : 0.15
         emitter.particleScaleRange = 0.10
         emitter.particleScaleSpeed = -0.09
         emitter.particleAlpha = 0.94
         emitter.particleAlphaRange = 0.12
         emitter.particleAlphaSpeed = -0.72
-        emitter.particleColor = settings.difficulty == .veryHard
-            ? UIColor(red: 1.0, green: 0.18, blue: 0.10, alpha: 1)
-            : UIColor(red: 1.0, green: 0.62, blue: 0.08, alpha: 1)
+        emitter.particleColor = settings.sparkColor
         emitter.particleColorBlendFactor = 1
         addChild(emitter)
     }
@@ -512,13 +626,13 @@ private struct EmberSurface: View {
 
     private func embers(at time: TimeInterval) -> some View {
         Canvas { context, size in
-            let count = settings.difficulty == .veryHard ? 28 : 18
+            let count = settings.isIntense ? 28 : 18
             for index in 0..<count {
                 let seed = Double(index + 1)
                 let x = pseudoRandom(seed * 12.9898) * size.width
                 let y = pseudoRandom(seed * 78.233) * size.height
                 let pulse = 0.5 + 0.5 * sin(time * settings.pulseSpeed + seed * 1.71)
-                let radius = CGFloat(0.7 + pulse * (settings.difficulty == .veryHard ? 2.0 : 1.35))
+                let radius = CGFloat(0.7 + pulse * (settings.isIntense ? 2.0 : 1.35))
                 let opacity = (0.08 + pulse * 0.22) * settings.glowIntensity
                 context.fill(
                     Path(ellipseIn: CGRect(
@@ -558,21 +672,19 @@ private struct FireGlowBorder: View {
         let wave = 0.5 + 0.5 * sin(time * settings.pulseSpeed)
         let intensity = settings.glowIntensity * (0.58 + wave * 0.42)
         return RoundedRectangle(cornerRadius: settings.cornerRadius, style: .continuous)
-            .stroke(
+            .strokeBorder(
                 LinearGradient(
-                    colors: [
-                        Color.yellow.opacity(0.82 * intensity),
-                        settings.hotColor.opacity(0.48 * intensity),
-                        Color.orange.opacity(0.70 * intensity)
-                    ],
+                    colors: settings.borderColors.enumerated().map { index, color in
+                        color.opacity([0.82, 0.48, 0.70][index] * intensity)
+                    },
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),
-                lineWidth: settings.difficulty == .veryHard ? 2.1 : 1.4
+                lineWidth: settings.isIntense ? 2.1 : 1.4
             )
             .shadow(
                 color: settings.hotColor.opacity(0.38 * intensity),
-                radius: settings.difficulty == .veryHard ? 13 : 8
+                radius: settings.isIntense ? 13 : 0
             )
             .allowsHitTesting(false)
     }
@@ -587,6 +699,9 @@ struct FireDifficultyButtonPrototype: View {
             }
             FireDifficultyButton(difficulty: .veryHard, action: {}) {
                 prototypeLabel(title: "Very Hard", level: 20)
+            }
+            FireDifficultyButton(difficulty: .nightmare, action: {}) {
+                prototypeLabel(title: "Nightmare", level: 25)
             }
         }
         .padding(.horizontal, 30)

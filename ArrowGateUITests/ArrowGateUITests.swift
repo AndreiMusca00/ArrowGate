@@ -40,6 +40,13 @@ final class ArrowGateUITests: XCTestCase {
         board.coordinate(withNormalizedOffset: CGVector(dx: x, dy: y)).tap()
         if wait { Thread.sleep(forTimeInterval: 0.4) }
     }
+    func completeLevel(_ level: Fixture) throws {
+        for id in level.solution {
+            guard board.exists else { return }
+            tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level)
+            if board.exists, summary.contains("arrows 0") { return }
+        }
+    }
     func capture(_ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
@@ -62,15 +69,15 @@ final class ArrowGateUITests: XCTestCase {
         for level in levels {
             XCTAssertTrue(board.waitForExistence(timeout: 5)); XCTAssertTrue(waitForLevel(level.number))
             capture("level-\(level.number)"); hint()
-            for id in level.solution { tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level) }
+            try completeLevel(level)
+            XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 7))
             if level.number < levels.count {
-                XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 5))
-                XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS '0 mistakes'")).firstMatch.exists)
                 if level.number == 1 { capture("victory") }
-                app.buttons["nextLevel"].tap()
+                XCTAssertEqual(app.buttons["play"].label, "Level \(level.number + 1)")
+                app.buttons["play"].tap()
             } else {
-                XCTAssertTrue(app.staticTexts["Well done!"].waitForExistence(timeout: 5)); capture("campaign-complete")
-                app.buttons["Open collection"].tap()
+                capture("campaign-complete")
+                app.buttons["collectionTab"].tap()
                 XCTAssertTrue(app.staticTexts["collectionPage"].waitForExistence(timeout: 5))
                 app.buttons["homeTab"].tap()
                 XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 5))
@@ -89,13 +96,11 @@ final class ArrowGateUITests: XCTestCase {
             app.launchArguments += ["-level", String(level.number)]
             app.launch(); XCTAssertTrue(board.waitForExistence(timeout: 10))
             capture("start-\(names[index])")
-            for id in level.solution {
-                tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level)
-            }
+            try completeLevel(level)
             Thread.sleep(forTimeInterval: 0.85)
             XCTAssertTrue(summary.contains("painted \(expectedPaintedCells[index])"), summary)
-            XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 4))
             capture(names[index])
+            XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 6))
             app.terminate()
             app.launchArguments = ["-ui-testing", "-reset-test-progress", "-skip-board-intro"]
         }
@@ -114,9 +119,8 @@ final class ArrowGateUITests: XCTestCase {
         app.buttons["expandedCollectionArtwork"].tap()
         app.buttons["homeTab"].tap(); app.buttons["play"].tap()
         XCTAssertTrue(board.waitForExistence(timeout: 5))
-        for id in level.solution { tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level) }
-        XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 6))
-        app.buttons["Main menu"].tap()
+        try completeLevel(level)
+        XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 7))
         app.buttons["collectionTab"].tap()
         XCTAssertTrue(app.staticTexts["1 collected"].waitForExistence(timeout: 5))
         app.descendants(matching: .any)["chapterCard1"].tap()
@@ -214,31 +218,28 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertTrue(app.buttons["idleHint"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.buttons["idleHint"].label, "Watch video for hint")
     }
-    func testMilestoneRewardAppearsOnCompletion() throws {
+    func testMilestoneRewardCompletesWithoutAResultPopup() throws {
         let level = try XCTUnwrap(fixtures().first { $0.number == 5 })
         app.launchArguments += ["-level", "5"]
         app.launch(); XCTAssertTrue(board.waitForExistence(timeout: 10))
-        for id in level.solution { tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level) }
-        XCTAssertTrue(app.descendants(matching: .any)["completionReward"].waitForExistence(timeout: 6))
-        XCTAssertTrue(app.staticTexts["+1 HINT"].exists)
-        XCTAssertTrue(app.buttons["nextLevel"].exists)
-        XCTAssertFalse(app.buttons["Play again"].exists)
+        try completeLevel(level)
+        XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 7))
+        XCTAssertFalse(app.descendants(matching: .any)["completionReward"].exists)
+        XCTAssertFalse(app.buttons["nextLevel"].exists)
     }
-    func testSmileArtworkMorphsBeforeCompletionCard() throws {
+    func testSmileArtworkMorphsBeforeReturningHome() throws {
         let level = try XCTUnwrap(fixtures().first)
         app.launchArguments += ["-level", "1"]
         app.launch(); XCTAssertTrue(board.waitForExistence(timeout: 10))
-        for id in level.solution {
-            tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level)
-        }
+        try completeLevel(level)
 
         // The completed mosaic should have time to become the polished collectible
-        // before the result card covers the board.
-        Thread.sleep(forTimeInterval: 2.65)
+        // before the game returns to Home automatically.
+        Thread.sleep(forTimeInterval: 1.2)
+        if board.exists { capture("smile-artwork-morph") }
+        XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 6))
         XCTAssertFalse(app.buttons["nextLevel"].exists)
-        capture("smile-artwork-morph")
-        XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 3))
-        capture("smile-artwork-card")
+        capture("smile-artwork-home")
     }
     func testRapidDependentTapsAndRestartDuringExit() throws {
         let level = try XCTUnwrap(fixtures().first)
@@ -257,8 +258,7 @@ final class ArrowGateUITests: XCTestCase {
         for id in level.solution {
             tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level, wait: false)
         }
-        XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 6))
-        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS '0 mistakes'")).firstMatch.exists)
+        XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 7))
     }
     func testRepeatedBlockedTapAndWarningRecovery() throws {
         let level = try XCTUnwrap(fixtures().first { fixture in
@@ -359,9 +359,8 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertTrue(app.buttons["settingsTab"].exists)
         app.buttons["play"].tap()
         XCTAssertTrue(board.waitForExistence(timeout: 10))
-        for id in level.solution { tapArrow(try XCTUnwrap(level.arrows.first { $0.id == id }), level: level) }
-        XCTAssertTrue(app.buttons["nextLevel"].waitForExistence(timeout: 5))
-        app.buttons["Main menu"].tap()
+        try completeLevel(level)
+        XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 7))
         XCTAssertEqual(app.buttons["play"].label, "Level 2")
         app.buttons["settingsTab"].tap()
         for name in ["Sound", "Haptics"] {

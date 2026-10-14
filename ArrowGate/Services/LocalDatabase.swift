@@ -219,11 +219,28 @@ final class LocalDatabase {
     func setHintCount(_ count: Int) throws {
         try transaction { try setMetadata("hints", String(max(0, count))) }
     }
+    func saveActiveSession(_ snapshot: LevelSessionSnapshot) throws {
+        let value = try JSONEncoder().encode(snapshot).base64EncodedString()
+        try transaction { try setMetadata("activeLevelSession", value) }
+    }
+    func activeSession() throws -> LevelSessionSnapshot? {
+        guard let value = try metadata("activeLevelSession"),
+              let data = Data(base64Encoded: value) else { return nil }
+        return try? JSONDecoder().decode(LevelSessionSnapshot.self, from: data)
+    }
+    func clearActiveSession() throws {
+        try transaction {
+            for row in try rows("Metadata", predicate: NSPredicate(format: "key == %@", "activeLevelSession")) {
+                context.delete(row)
+            }
+        }
+    }
     func resetProgress() throws {
         try transaction {
             for row in try rows("Metadata") {
                 let key = row.value(forKey: "key") as! String
                 if key == "campaignCompleted" || key == "reserveLives" || key.hasPrefix("bestTime.")
+                    || key == "activeLevelSession"
                     || key.hasPrefix("firstCompletionTime.") || key.hasPrefix("lastCompletionTime.")
                     || key.hasPrefix("totalCompletionTime.") || key.hasPrefix("completionCount.")
                     || key.hasPrefix("completed.") { context.delete(row) }

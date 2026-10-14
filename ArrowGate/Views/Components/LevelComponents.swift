@@ -32,7 +32,7 @@ struct HomePlayButton: View {
     }
 
     var body: some View {
-        if level.difficulty == .hard || level.difficulty == .veryHard {
+        if level.difficulty == .hard || level.difficulty == .veryHard || level.difficulty == .nightmare {
             FireDifficultyButton(
                 difficulty: level.difficulty ?? .hard,
                 action: action

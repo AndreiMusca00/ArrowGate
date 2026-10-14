@@ -34,6 +34,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
     private var pinchStartScale: CGFloat = 1
     private(set) var isIntroducing = false
     private var needsIntroduction = true
+    private var suppressesIntroduction = false
     private var skipsIntroduction: Bool {
         #if DEBUG
         return ProcessInfo.processInfo.arguments.contains("-skip-board-intro")
@@ -56,6 +57,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
 
     func configure(level: LevelDefinition) {
         boardCamera.removeAllActions(); isIntroducing = false; needsIntroduction = true
+        suppressesIntroduction = false
         removeAllActions(); removeAllChildren()
         self.level = level; exiting = []; warned = []
         arrowNodes = [:]; motions = [:]; travels = [:]
@@ -71,8 +73,10 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         paintMask.fillColor = .white; paintMask.strokeColor = .clear
         paintLayer.maskNode = paintMask; addChild(paintLayer)
         arrowLayer = SKNode(); arrowLayer.zPosition = 5; addChild(arrowLayer)
-        fragmentLayer = SKNode(); fragmentLayer.zPosition = 7; addChild(fragmentLayer)
-        tapFeedbackLayer = SKNode(); tapFeedbackLayer.zPosition = 12; addChild(tapFeedbackLayer)
+        fragmentLayer = SKNode(); fragmentLayer.zPosition = 30; addChild(fragmentLayer)
+        // The touch wave belongs behind the ink. Drawing it over a border arrow
+        // briefly washed out its body and looked like the arrow was flickering.
+        tapFeedbackLayer = SKNode(); tapFeedbackLayer.zPosition = 4; addChild(tapFeedbackLayer)
         tutorial = SKNode(); tutorial.zPosition = 15; addChild(tutorial)
         for arrow in level.arrows { drawArrow(arrow) }
         resetViewport()
@@ -91,7 +95,10 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         tap.require(toFail: pan); tap.require(toFail: pinch)
         gestures = [pan, pinch, tap]
         for gesture in gestures { gesture.delegate = self; view.addGestureRecognizer(gesture) }
-        resetViewport(); needsIntroduction = true; introduceBoard(); updateAccessibility()
+        resetViewport()
+        needsIntroduction = !suppressesIntroduction
+        if needsIntroduction { introduceBoard() }
+        updateAccessibility()
     }
     override func willMove(from view: SKView) {
         for gesture in gestures { view.removeGestureRecognizer(gesture) }
@@ -123,6 +130,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         guard needsIntroduction, view != nil else { return }
         needsIntroduction = false
         guard !skipsIntroduction, !UIAccessibility.isReduceMotionEnabled else {
+            finishArrowIntroduction()
             boardCamera.setScale(initialCameraScale)
             clampCamera()
             return
@@ -130,15 +138,125 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         // Begin with the widest allowed overview, then settle halfway through the
         // 15–28-column zoom range while keeping the authored board centred.
         isIntroducing = true
+        animateArrowIntroduction()
         let zoom = SKAction.scale(to: initialCameraScale, duration: GameStyle.introDuration)
         zoom.timingMode = .easeInEaseOut
         boardCamera.run(.sequence([.wait(forDuration: 0.25), zoom, .run { [weak self] in
+            self?.finishArrowIntroduction()
             self?.isIntroducing = false; self?.clampCamera()
         }]), withKey: "introduction")
     }
+
+    /// Traces every ribbon from tail to head while the camera settles. The
+    /// temporary strokes are vector paths; the normal high-resolution arrow is
+    /// swapped in only after its drawing finishes, so the intro stays crisp.
+    private func animateArrowIntroduction() {
+        finishArrowIntroduction()
+        let arrows = level.arrows
+        guard !arrows.isEmpty else { return }
+
+        for (index, arrow) in arrows.enumerated() {
+            guard let arrowNode = arrowNodes[arrow.id] else { continue }
+            let paths = arrowPaths(arrow)
+            guard paths.body.count >= 2 else { continue }
+
+            arrowNode.alpha = 0
+            let trace = SKNode()
+            trace.name = "arrowIntroTrace.\(arrow.id)"
+            trace.position = arrowNode.position
+            trace.zPosition = 20 + CGFloat(index) * 0.001
+            arrowLayer.addChild(trace)
+
+            let color = GameStyle.uiColor(arrow.color)
+            let pairs = Array(zip(paths.body, paths.body.dropFirst()))
+            let lengths = pairs.map { hypot($0.1.x - $0.0.x, $0.1.y - $0.0.y) }
+            let totalLength = max(0.001, lengths.reduce(0, +))
+            var drawing: [SKAction] = []
+
+            for (segmentIndex, pair) in pairs.enumerated() {
+                let stroke = SKShapeNode()
+                stroke.strokeColor = color
+                stroke.fillColor = .clear
+                stroke.lineWidth = GameStyle.arrowWidth
+                stroke.lineCap = .round
+                stroke.lineJoin = .round
+                trace.addChild(stroke)
+                let start = pair.0
+                let end = pair.1
+                let duration = max(0.045, 0.34 * Double(lengths[segmentIndex] / totalLength))
+                drawing.append(.customAction(withDuration: duration) { _, elapsed in
+                    let progress = min(1, CGFloat(Double(elapsed) / duration))
+                    let eased = progress * progress * (3 - 2 * progress)
+                    let current = CGPoint(x: start.x + (end.x - start.x) * eased,
+                                          y: start.y + (end.y - start.y) * eased)
+                    let path = CGMutablePath()
+                    path.move(to: start); path.addLine(to: current)
+                    stroke.path = path
+                })
+            }
+
+            let head = SKSpriteNode(texture: arrowHeadTexture(color: color),
+                                    size: CGSize(width: 7, height: 9))
+            head.position = CGPoint(
+                x: paths.tip.x - CGFloat(paths.direction.dx) * 3.5,
+                y: paths.tip.y - CGFloat(paths.direction.dy) * 3.5
+            )
+            head.zRotation = CGFloat(paths.direction.rawValue) * .pi / 2
+            head.alpha = 0
+            head.setScale(0.72)
+            trace.addChild(head)
+            let revealHead = SKAction.group([
+                .fadeIn(withDuration: 0.09),
+                .scale(to: 1, duration: 0.12)
+            ])
+            revealHead.timingMode = .easeOut
+            drawing.append(.run { head.run(revealHead) })
+            drawing.append(.wait(forDuration: 0.12))
+            drawing.append(.run { [weak arrowNode, weak trace] in
+                arrowNode?.alpha = 1
+                trace?.removeFromParent()
+            })
+
+            let fraction = arrows.count > 1 ? Double(index) / Double(arrows.count - 1) : 0
+            trace.run(.sequence([.wait(forDuration: 0.16 + fraction * 0.28)] + drawing),
+                      withKey: "draw")
+        }
+    }
+
+    private func finishArrowIntroduction() {
+        arrowLayer.enumerateChildNodes(withName: "arrowIntroTrace.*") { node, _ in
+            node.removeAllActions()
+            node.removeFromParent()
+        }
+        for (id, node) in arrowNodes where !exiting.contains(id) { node.alpha = 1 }
+    }
+
     private func interruptIntroduction() {
         boardCamera.removeAction(forKey: "introduction")
+        finishArrowIntroduction()
         isIntroducing = false
+    }
+
+    /// Rebuilds the visual board from an unfinished attempt without replaying
+    /// exit animations. Removed arrows are applied in their original order so
+    /// legacy levels without authored target colours keep the same paint result.
+    func restoreSession(removedArrowIDs: [Int]) {
+        interruptIntroduction()
+        suppressesIntroduction = true
+        needsIntroduction = false
+
+        let definitions = Dictionary(uniqueKeysWithValues: level.arrows.map { ($0.id, $0) })
+        for id in removedArrowIDs {
+            guard let arrow = definitions[id] else { continue }
+            arrowNodes[id]?.removeFromParent()
+            arrowNodes.removeValue(forKey: id)
+            travels.removeValue(forKey: id)
+            motions.removeValue(forKey: id)
+            for event in paintEvents(for: arrow) {
+                paintImmediately(event.cell, color: arrow.color)
+            }
+        }
+        updateAccessibility()
     }
     private func clampCamera() {
         let halfWidth = size.width * boardCamera.xScale / 2
@@ -531,8 +649,11 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
         let slide = SKAction.customAction(withDuration: duration) { [weak self] node, elapsed in
             guard let self else { return }
             let distance = start + ArrowMotion.takeoffProgress(min(1, Double(elapsed) / duration)) * (travel - start)
+            // Keep the untouched artwork for the first sub-pixel of travel. For an
+            // arrow whose head already sits on the edge, replacing its head on the
+            // action's zero-time callback caused a one-frame flash on tap.
             self.render(arrow, node: node, travel: distance,
-                        clippingAt: distance >= contact ? impact.point : nil)
+                        clippingAt: distance > contact + 0.01 ? impact.point : nil)
             while nextPaintEvent < paintEvents.count, distance >= paintEvents[nextPaintEvent].distance {
                 self.paint(paintEvents[nextPaintEvent].cell, color: arrow.color)
                 nextPaintEvent += 1
@@ -626,6 +747,17 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
             .sequence([firstPulse, firstSettle, secondPulse, secondSettle])
         ]), withKey: "paintPulse")
         updateAccessibility()
+    }
+    private func paintImmediately(_ cell: Cell, color: ArrowColor) {
+        guard level.contains(cell), let dot = guideDots[cell] else { return }
+        if let targetColors, targetColors[cell] != color { return }
+        let targetColor = GameStyle.uiColor(color)
+        paintSequence += 1
+        dot.removeAllActions()
+        dot.alpha = 1
+        dot.setScale(1)
+        dot.fillColor = targetColor
+        paintedCells[cell] = PaintedMark(dot: dot, color: targetColor, order: paintSequence)
     }
     private static func interpolate(_ from: UIColor, _ to: UIColor, progress: CGFloat) -> UIColor {
         var fr: CGFloat = 0, fg: CGFloat = 0, fb: CGFloat = 0, fa: CGFloat = 0
@@ -834,10 +966,11 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
                 .group([glide, shimmer]),
                 .removeFromParent()
             ]), withKey: "artworkSweep")
-            // Let the player enjoy the finished collectible before the result card.
-            completionDelay = morphStart + wipeDuration + 1.05
+            // Hold the completed collectible briefly, then let SwiftUI cross-fade
+            // back to Home. The clean pause replaces the former confetti burst.
+            completionDelay = morphStart + wipeDuration + 0.72
         } else {
-            completionDelay = fittedEnd + 0.80
+            completionDelay = fittedEnd + 0.72
         }
         boardCamera.run(.sequence([.wait(forDuration: revealEnd),
                                    fitArtwork,
@@ -845,6 +978,7 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
                                    .run(completion)]),
                         withKey: "paintingReveal")
     }
+
     /// Fragments continue through the puzzle boundary, making the arrow look as if
     /// it breaks apart naturally while leaving the authored board shape.
     private func boundaryShatter(at point: CGPoint, direction: Direction, color: ArrowColor,

@@ -45,7 +45,7 @@ final class AppState: ObservableObject {
 
     func play(_ number: Int? = nil) {
         var limit: TimeInterval? = nil
-        var hintDelay: TimeInterval = 5
+        var hintDelay: TimeInterval = 10
         #if DEBUG
         if let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-test-time-limit"),
            ProcessInfo.processInfo.arguments.count > index + 1 {
@@ -53,18 +53,20 @@ final class AppState: ObservableObject {
         }
         if let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-test-hint-delay"),
            ProcessInfo.processInfo.arguments.count > index + 1 {
-            hintDelay = Double(ProcessInfo.processInfo.arguments[index + 1]) ?? 5
+            hintDelay = Double(ProcessInfo.processInfo.arguments[index + 1]) ?? 10
         }
         #endif
         let id = number ?? homeLevelNumber
         let level = progress.savedLevels.first { $0.id == id }?.definition ?? LevelRepository.level(id)
         let replay = progress.completedLevels.contains(id)
+        let session = replay ? nil : progress.session(for: level)
         game = GameViewModel(
             level: level,
             store: progress,
             isReplay: replay,
             timeLimit: limit,
-            idleHintDelay: hintDelay
+            idleHintDelay: hintDelay,
+            session: session
         )
     }
 
@@ -81,10 +83,11 @@ final class AppState: ObservableObject {
     }
 
     func menu() {
+        game?.persistSession()
         if game?.isReplay == true { selectedReplayLevel = nil }
         game = nil
         homeScreen = .menu
     }
-    func showCollection() { game = nil; homeScreen = .collection }
-    func show(_ screen: HomeScreen) { game = nil; homeScreen = screen }
+    func showCollection() { game?.persistSession(); game = nil; homeScreen = .collection }
+    func show(_ screen: HomeScreen) { game?.persistSession(); game = nil; homeScreen = screen }
 }

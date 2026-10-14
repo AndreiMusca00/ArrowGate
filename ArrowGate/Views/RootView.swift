@@ -6,11 +6,18 @@ struct RootView: View {
         ZStack {
             GameStyle.background.ignoresSafeArea()
             if let game = state.game {
-                GameScreen(model: game).id(ObjectIdentifier(game))
+                GameScreen(model: game)
+                    .id(ObjectIdentifier(game))
+                    .transition(.asymmetric(
+                        insertion: .opacity,
+                        removal: .opacity.combined(with: .scale(scale: 1.025))
+                    ))
             } else {
                 HomePagerView(store: state.progress)
+                    .transition(.opacity)
             }
         }
+        .animation(.easeInOut(duration: 0.42), value: state.game == nil)
     }
 }
 struct ActionButton: View {
