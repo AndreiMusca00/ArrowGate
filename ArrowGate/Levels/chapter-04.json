@@ -38,7 +38,7 @@
       "chapterID": 4,
       "size": 24,
       "height": 16,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -591,7 +591,7 @@
       "chapterID": 4,
       "size": 24,
       "height": 21,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -1165,7 +1165,7 @@
       "chapterID": 4,
       "size": 25,
       "height": 26,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -1827,7 +1827,7 @@
       "chapterID": 4,
       "size": 26,
       "height": 19,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -2450,7 +2450,7 @@
       "chapterID": 4,
       "size": 32,
       "height": 27,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -3353,7 +3353,7 @@
       "chapterID": 4,
       "size": 26,
       "height": 22,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -3926,7 +3926,7 @@
       "chapterID": 4,
       "size": 32,
       "height": 30,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -4869,7 +4869,7 @@
       "chapterID": 4,
       "size": 28,
       "height": 40,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -6310,7 +6310,7 @@
       "chapterID": 4,
       "size": 25,
       "height": 26,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -7076,7 +7076,7 @@
       "chapterID": 4,
       "size": 36,
       "height": 48,
-      "timeLimit": 360,
+      "timeLimit": 0,
       "difficulty": "nightmare",
       "arrows": [
         {
@@ -9238,14 +9238,14 @@
       ],
       "completionArtwork": "ForestSanctuaryPiece10",
       "rewardName": "The Ancient Tree Sanctuary · Arched amber window",
-      "completionReward": {"kind":"life","amount":1}
+      "completionReward": {"kind":"hint","amount":1}
     },
     {
       "id": 86,
       "chapterID": 4,
       "size": 16,
       "height": 27,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -9778,7 +9778,7 @@
       "chapterID": 4,
       "size": 30,
       "height": 32,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -10741,7 +10741,7 @@
       "chapterID": 4,
       "size": 20,
       "height": 26,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -11425,7 +11425,7 @@
       "chapterID": 4,
       "size": 40,
       "height": 32,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -12689,7 +12689,7 @@
       "chapterID": 4,
       "size": 13,
       "height": 28,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -13227,7 +13227,7 @@
       "chapterID": 4,
       "size": 32,
       "height": 29,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -14319,7 +14319,7 @@
       "chapterID": 4,
       "size": 35,
       "height": 40,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -15716,7 +15716,7 @@
       "chapterID": 4,
       "size": 26,
       "height": 19,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -16371,7 +16371,7 @@
       "chapterID": 4,
       "size": 32,
       "height": 32,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -17378,7 +17378,7 @@
       "chapterID": 4,
       "size": 26,
       "height": 15,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -17907,14 +17907,14 @@
       ],
       "completionArtwork": "ForestSanctuaryPiece20",
       "rewardName": "The Ancient Tree Sanctuary · Stone footbridge",
-      "completionReward": {"kind":"life","amount":1}
+      "completionReward": {"kind":"hint","amount":1}
     },
     {
       "id": 96,
       "chapterID": 4,
       "size": 26,
       "height": 22,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -18618,7 +18618,7 @@
       "chapterID": 4,
       "size": 19,
       "height": 32,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -19406,7 +19406,7 @@
       "chapterID": 4,
       "size": 26,
       "height": 20,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -20015,7 +20015,7 @@
       "chapterID": 4,
       "size": 40,
       "height": 31,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -21394,7 +21394,7 @@
       "chapterID": 4,
       "size": 59,
       "height": 60,
-      "timeLimit": 600,
+      "timeLimit": 0,
       "difficulty": "nightmare",
       "arrows": [
         {

@@ -114,6 +114,9 @@ final class LocalDatabase {
     }
     func initializeProgress(defaults: UserDefaults) throws {
         try transaction {
+            for row in try rows("Metadata", predicate: NSPredicate(format: "key == %@", "reserveLives")) {
+                context.delete(row)
+            }
             if try metadata("unlocked") == nil {
                 try setMetadata("unlocked", String(min(LevelRepository.count, max(1, defaults.integer(forKey: "unlockedLevel")))))
                 for id in 1...LevelRepository.count where defaults.double(forKey: "bestTime.\(id)") > 0 {
@@ -124,10 +127,6 @@ final class LocalDatabase {
             if try metadata("hints") == nil {
                 let stored = defaults.object(forKey: "hintCount") == nil ? 3 : defaults.integer(forKey: "hintCount")
                 try setMetadata("hints", String(max(0, stored)))
-            }
-            if try metadata("reserveLives") == nil {
-                let stored = defaults.object(forKey: "reserveLifeCount") == nil ? 1 : defaults.integer(forKey: "reserveLifeCount")
-                try setMetadata("reserveLives", String(max(0, stored)))
             }
             var unlocked = Int(try metadata("unlocked") ?? "1") ?? 1
             // A completed older campaign stored its final level as `unlocked` because
@@ -200,12 +199,19 @@ final class LocalDatabase {
             let key = "bestTime.\(level)"
             let best = Double(try metadata(key) ?? "") ?? .infinity
             if time < best { try setMetadata(key, String(time)) }
+            let countKey = "completionCount.\(level)"
+            let totalKey = "totalCompletionTime.\(level)"
+            let completionCount = Int(try metadata(countKey) ?? "0") ?? 0
+            let totalCompletionTime = Double(try metadata(totalKey) ?? "0") ?? 0
+            try setMetadata("lastCompletionTime.\(level)", String(time))
+            try setMetadata(countKey, String(completionCount + 1))
+            try setMetadata(totalKey, String(totalCompletionTime + time))
+            if firstCompletion { try setMetadata("firstCompletionTime.\(level)", String(time)) }
             if level == LevelRepository.count { try setMetadata("campaignCompleted", "1") }
             try setMetadata("completed.\(level)", "1")
             if firstCompletion, let reward {
-                let inventoryKey = reward.kind == .hint ? "hints" : "reserveLives"
-                let current = Int(try metadata(inventoryKey) ?? "0") ?? 0
-                try setMetadata(inventoryKey, String(max(0, current) + reward.amount))
+                let current = Int(try metadata("hints") ?? "0") ?? 0
+                try setMetadata("hints", String(max(0, current) + reward.amount))
             }
             return firstCompletion
         }
@@ -213,18 +219,17 @@ final class LocalDatabase {
     func setHintCount(_ count: Int) throws {
         try transaction { try setMetadata("hints", String(max(0, count))) }
     }
-    func setReserveLifeCount(_ count: Int) throws {
-        try transaction { try setMetadata("reserveLives", String(max(0, count))) }
-    }
     func resetProgress() throws {
         try transaction {
             for row in try rows("Metadata") {
                 let key = row.value(forKey: "key") as! String
-                if key == "campaignCompleted" || key.hasPrefix("bestTime.") || key.hasPrefix("completed.") { context.delete(row) }
+                if key == "campaignCompleted" || key == "reserveLives" || key.hasPrefix("bestTime.")
+                    || key.hasPrefix("firstCompletionTime.") || key.hasPrefix("lastCompletionTime.")
+                    || key.hasPrefix("totalCompletionTime.") || key.hasPrefix("completionCount.")
+                    || key.hasPrefix("completed.") { context.delete(row) }
             }
             try setMetadata("unlocked", "1")
             try setMetadata("hints", "3")
-            try setMetadata("reserveLives", "1")
         }
     }
 }

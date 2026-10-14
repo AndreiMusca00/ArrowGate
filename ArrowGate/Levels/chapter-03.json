@@ -38,7 +38,7 @@
       "chapterID": 3,
       "size": 22,
       "height": 21,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -597,7 +597,7 @@
       "chapterID": 3,
       "size": 18,
       "height": 22,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -1105,7 +1105,7 @@
       "chapterID": 3,
       "size": 24,
       "height": 17,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -1629,7 +1629,7 @@
       "chapterID": 3,
       "size": 24,
       "height": 23,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -2238,7 +2238,7 @@
       "chapterID": 3,
       "size": 28,
       "height": 18,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -2912,7 +2912,7 @@
       "chapterID": 3,
       "size": 24,
       "height": 23,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -3508,7 +3508,7 @@
       "chapterID": 3,
       "size": 28,
       "height": 19,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -4198,7 +4198,7 @@
       "chapterID": 3,
       "size": 28,
       "height": 34,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -5287,7 +5287,7 @@
       "chapterID": 3,
       "size": 24,
       "height": 15,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -5781,7 +5781,7 @@
       "chapterID": 3,
       "size": 35,
       "height": 42,
-      "timeLimit": 360,
+      "timeLimit": 0,
       "difficulty": "nightmare",
       "arrows": [
         {
@@ -7485,14 +7485,14 @@
       ],
       "completionArtwork": "ForestMushroomPiece10",
       "rewardName": "The Mushroom Village · Teal front door",
-      "completionReward": {"kind":"life","amount":1}
+      "completionReward": {"kind":"hint","amount":1}
     },
     {
       "id": 61,
       "chapterID": 3,
       "size": 18,
       "height": 24,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -8094,7 +8094,7 @@
       "chapterID": 3,
       "size": 26,
       "height": 28,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -8983,7 +8983,7 @@
       "chapterID": 3,
       "size": 23,
       "height": 24,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -9584,7 +9584,7 @@
       "chapterID": 3,
       "size": 34,
       "height": 33,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -10732,7 +10732,7 @@
       "chapterID": 3,
       "size": 24,
       "height": 19,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -11204,7 +11204,7 @@
       "chapterID": 3,
       "size": 28,
       "height": 26,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -12111,7 +12111,7 @@
       "chapterID": 3,
       "size": 34,
       "height": 30,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -13271,7 +13271,7 @@
       "chapterID": 3,
       "size": 24,
       "height": 21,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -13809,7 +13809,7 @@
       "chapterID": 3,
       "size": 23,
       "height": 28,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -14505,7 +14505,7 @@
       "chapterID": 3,
       "size": 24,
       "height": 19,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -15058,14 +15058,14 @@
       ],
       "completionArtwork": "ForestMushroomPiece20",
       "rewardName": "The Mushroom Village · Mossy boulders",
-      "completionReward": {"kind":"life","amount":1}
+      "completionReward": {"kind":"hint","amount":1}
     },
     {
       "id": 71,
       "chapterID": 3,
       "size": 21,
       "height": 24,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -15699,7 +15699,7 @@
       "chapterID": 3,
       "size": 28,
       "height": 23,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -16427,7 +16427,7 @@
       "chapterID": 3,
       "size": 24,
       "height": 21,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -16978,7 +16978,7 @@
       "chapterID": 3,
       "size": 34,
       "height": 31,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -18077,7 +18077,7 @@
       "chapterID": 3,
       "size": 41,
       "height": 42,
-      "timeLimit": 360,
+      "timeLimit": 0,
       "difficulty": "nightmare",
       "arrows": [
         {

@@ -15,30 +15,21 @@ struct GameScreen: View {
                     MinimalIconButton(icon: "pause.fill", label: "Pause") { model.pause() }.accessibilityIdentifier("pause")
                 }
                 VStack(spacing: 6) {
-                    Label(model.formattedTime, systemImage: "clock")
-                        .font(.system(size: 17, weight: .medium, design: .rounded)).monospacedDigit()
-                        .foregroundColor(model.hasTimeLimit && model.secondsRemaining <= 15 ? GameStyle.color(.red) : GameStyle.muted)
-                        .accessibilityIdentifier("countdown")
+                    if model.hasTimeLimit {
+                        Label(model.formattedTime, systemImage: "clock")
+                            .font(.system(size: 17, weight: .medium, design: .rounded)).monospacedDigit()
+                            .foregroundColor(model.secondsRemaining <= 15 ? GameStyle.color(.red) : GameStyle.muted)
+                            .accessibilityIdentifier("countdown")
+                    }
                     HStack(spacing: 5) {
-                        HStack(spacing: 5) {
-                            ForEach(0..<GameStyle.startingHearts, id: \.self) { index in
-                                Image(systemName: index < model.hearts ? "heart.fill" : "heart")
-                                    .foregroundColor(index < model.hearts ? GameStyle.color(.red) : GameStyle.muted.opacity(0.35))
-                            }
+                        ForEach(0..<GameStyle.startingHearts, id: \.self) { index in
+                            Image(systemName: index < model.hearts ? "heart.fill" : "heart")
+                                .foregroundColor(index < model.hearts ? GameStyle.color(.red) : GameStyle.muted.opacity(0.35))
                         }
-                        .accessibilityElement(children: .ignore).accessibilityLabel("Lives")
-                        .accessibilityValue(String(model.hearts)).accessibilityIdentifier("lives")
-                        Rectangle().fill(GameStyle.muted.opacity(0.18)).frame(width: 1, height: 13).padding(.horizontal, 2)
-                        HStack(spacing: 4) {
-                            Image(systemName: "heart.circle.fill")
-                                .foregroundColor(GameStyle.color(.red).opacity(0.82))
-                            Text(String(model.reserveLifeBalance))
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
-                                .foregroundColor(GameStyle.muted)
-                        }
-                        .accessibilityElement(children: .ignore).accessibilityLabel("Reserve lives")
-                        .accessibilityValue(String(model.reserveLifeBalance)).accessibilityIdentifier("reserveLives")
-                    }.font(.system(size: 12))
+                    }
+                    .font(.system(size: 13))
+                    .accessibilityElement(children: .ignore).accessibilityLabel("Lives")
+                    .accessibilityValue(String(model.hearts)).accessibilityIdentifier("lives")
                 }.allowsHitTesting(false)
             }.frame(height: 66).padding(.horizontal, 12)
             PuzzleBoardView(scene: model.scene, paused: model.phase == .paused)
@@ -77,7 +68,8 @@ struct GameScreen: View {
                 Text(model.phase == .won ? "Well done!" : model.phase == .lost ? (model.lossReason == .timeout ? "Time is up" : "Try a new path") : "Take a breath")
                     .font(.system(size: 28, weight: .bold, design: .rounded)).multilineTextAlignment(.center)
                 if model.phase == .won {
-                    Text("\(model.formattedElapsed)  ·  \(model.mistakes) mistakes").foregroundColor(GameStyle.muted)
+                    Text(model.mistakes == 0 ? "Perfect run" : "\(model.mistakes) \(model.mistakes == 1 ? "mistake" : "mistakes")")
+                        .foregroundColor(GameStyle.muted)
                     if let reward = model.earnedReward {
                         CompletionRewardBanner(reward: reward)
                     }
@@ -109,34 +101,11 @@ struct GameScreen: View {
                     .accessibilityIdentifier("hint")
                     ActionButton(title: "Restart", icon: "arrow.counterclockwise") { model.restart() }.accessibilityIdentifier("pauseRestart")
                 } else {
-                    if model.lossReason == .timeout {
-                        Text("Try again with one heart.").foregroundColor(GameStyle.muted)
-                        ActionButton(title: "Retry · 1 heart", icon: "arrow.counterclockwise", primary: true) {
-                            model.retryAfterLoss()
-                        }
-                        .accessibilityIdentifier("retryOneHeart")
-                    } else if model.reserveLifeBalance > 0 {
-                        Text("\(model.reserveLifeBalance) reserve \(model.reserveLifeBalance == 1 ? "life" : "lives") available")
-                            .foregroundColor(GameStyle.muted)
-                        ActionButton(title: "Continue · 1 heart", icon: "heart.circle.fill", primary: true) {
-                            model.continueWithReserveLife()
-                        }
-                        .accessibilityIdentifier("continueWithLife")
-                        ActionButton(title: "Restart · 1 heart", icon: "arrow.counterclockwise") {
-                            model.retryAfterLoss()
-                        }
-                        .accessibilityIdentifier("retryOneHeart")
-                    } else {
-                        Text("No reserve lives left").foregroundColor(GameStyle.muted)
-                        ActionButton(title: "Watch to continue", icon: "play.rectangle.fill", primary: true) {
-                            model.rewardedLifeDidComplete()
-                        }
-                        .accessibilityIdentifier("watchForLife")
-                        ActionButton(title: "Retry · 1 heart", icon: "arrow.counterclockwise") {
-                            model.retryAfterLoss()
-                        }
-                        .accessibilityIdentifier("retryOneHeart")
+                    Text("Try again with three lives.").foregroundColor(GameStyle.muted)
+                    ActionButton(title: "Retry", icon: "arrow.counterclockwise", primary: true) {
+                        model.retryAfterLoss()
                     }
+                    .accessibilityIdentifier("retryLevel")
                 }
                 if !(model.phase == .won && (model.isReplay || model.level.id >= LevelRepository.count)) {
                     Button("Main menu") { state.menu() }.font(.system(size: 16, weight: .semibold)).foregroundColor(GameStyle.muted).padding(10)
@@ -151,12 +120,12 @@ private struct CompletionRewardBanner: View {
 
     var body: some View {
         HStack(spacing: 9) {
-            Image(systemName: reward.kind == .hint ? "lightbulb.fill" : "heart.circle.fill")
-            Text("+\(reward.amount) \(reward.kind == .hint ? "HINT" : "RESERVE LIFE")")
+            Image(systemName: "lightbulb.fill")
+            Text("+\(reward.amount) HINT")
                 .font(.system(size: 12, weight: .bold, design: .rounded))
                 .tracking(0.6)
         }
-        .foregroundColor(reward.kind == .hint ? GameStyle.color(.yellow) : GameStyle.color(.red))
+        .foregroundColor(GameStyle.color(.yellow))
         .padding(.horizontal, 15)
         .frame(height: 38)
         .background(Color.white.opacity(0.82), in: Capsule())

@@ -27,7 +27,7 @@ enum PuzzleRules {
 }
 enum LevelValidator {
     static func solution(for level: LevelDefinition) -> [Int]? {
-        guard level.size > 0, level.height > 0, level.timeLimit.isFinite, (level.timeLimit > 0 || (level.id == 1 && level.difficulty == .tutorial && level.timeLimit == 0)), !level.arrows.isEmpty,
+        guard level.size > 0, level.height > 0, level.timeLimit.isFinite, level.timeLimit >= 0, !level.arrows.isEmpty,
               Set(level.arrows.map(\.id)).count == level.arrows.count,
               level.arrows.allSatisfy({ arrow in
                   let cells = arrow.cells

@@ -659,7 +659,7 @@
       "chapterID": 1,
       "size": 23,
       "height": 20,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -1272,7 +1272,7 @@
       "chapterID": 1,
       "size": 24,
       "height": 18,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -1885,7 +1885,7 @@
       "chapterID": 1,
       "size": 22,
       "height": 20,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -2519,7 +2519,7 @@
       "chapterID": 1,
       "size": 30,
       "height": 30,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -3644,7 +3644,7 @@
       "chapterID": 1,
       "size": 23,
       "height": 24,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -4431,7 +4431,7 @@
       "chapterID": 1,
       "size": 30,
       "height": 26,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -5562,7 +5562,7 @@
       "chapterID": 1,
       "size": 36,
       "height": 40,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -7353,7 +7353,7 @@
       "chapterID": 1,
       "size": 24,
       "height": 17,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -7988,7 +7988,7 @@
       "chapterID": 1,
       "size": 50,
       "height": 48,
-      "timeLimit": 360,
+      "timeLimit": 0,
       "difficulty": "nightmare",
       "arrows": [
         {
@@ -10773,14 +10773,14 @@
       ],
       "completionArtwork": "EnchantedTreePiece10",
       "rewardName": "The Enchanted Treehouse · House walls",
-      "completionReward": {"kind":"life","amount":1}
+      "completionReward": {"kind":"hint","amount":1}
     },
     {
       "id": 11,
       "chapterID": 1,
       "size": 25,
       "height": 18,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -11412,7 +11412,7 @@
       "chapterID": 1,
       "size": 30,
       "height": 25,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -12486,7 +12486,7 @@
       "chapterID": 1,
       "size": 17,
       "height": 26,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -13097,7 +13097,7 @@
       "chapterID": 1,
       "size": 30,
       "height": 40,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -14800,7 +14800,7 @@
       "chapterID": 1,
       "size": 24,
       "height": 17,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -15481,7 +15481,7 @@
       "chapterID": 1,
       "size": 31,
       "height": 22,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -16398,7 +16398,7 @@
       "chapterID": 1,
       "size": 27,
       "height": 40,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -17787,7 +17787,7 @@
       "chapterID": 1,
       "size": 24,
       "height": 19,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -18398,7 +18398,7 @@
       "chapterID": 1,
       "size": 23,
       "height": 32,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -19306,7 +19306,7 @@
       "chapterID": 1,
       "size": 17,
       "height": 26,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -19941,14 +19941,14 @@
       ],
       "completionArtwork": "EnchantedTreePiece20",
       "rewardName": "The Enchanted Treehouse · Little birdhouse",
-      "completionReward": {"kind":"life","amount":1}
+      "completionReward": {"kind":"hint","amount":1}
     },
     {
       "id": 21,
       "chapterID": 1,
       "size": 24,
       "height": 21,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -20612,7 +20612,7 @@
       "chapterID": 1,
       "size": 30,
       "height": 30,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -21801,7 +21801,7 @@
       "chapterID": 1,
       "size": 14,
       "height": 29,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -22416,7 +22416,7 @@
       "chapterID": 1,
       "size": 36,
       "height": 40,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -23802,7 +23802,7 @@
       "chapterID": 1,
       "size": 49,
       "height": 50,
-      "timeLimit": 360,
+      "timeLimit": 0,
       "difficulty": "nightmare",
       "arrows": [
         {

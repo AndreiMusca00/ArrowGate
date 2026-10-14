@@ -21,7 +21,6 @@ final class ArrowGateUITests: XCTestCase {
     var board: XCUIElement { app.otherElements["board"] }
     var summary: String { board.value as? String ?? "" }
     var lives: String { app.descendants(matching: .any)["lives"].value as? String ?? "" }
-    var reserveLives: String { app.descendants(matching: .any)["reserveLives"].value as? String ?? "" }
     func waitForLevel(_ number: Int, timeout: TimeInterval = 5) -> Bool {
         let expectation = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "value CONTAINS %@", "Level \(number);"),
@@ -341,12 +340,8 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertEqual(blocked.count, 4)
         for arrow in blocked.prefix(3) { tapArrow(arrow, level: level) }
         XCTAssertTrue(app.staticTexts["Try a new path"].waitForExistence(timeout: 5)); capture("defeat")
-        XCTAssertEqual(reserveLives, "1")
-        app.buttons["continueWithLife"].tap(); XCTAssertTrue(board.waitForExistence(timeout: 5)); XCTAssertEqual(lives, "1")
-        XCTAssertEqual(reserveLives, "0")
-        tapArrow(blocked[3], level: level)
-        XCTAssertTrue(app.buttons["watchForLife"].waitForExistence(timeout: 5))
-        app.buttons["watchForLife"].tap(); XCTAssertEqual(lives, "1"); XCTAssertEqual(reserveLives, "0")
+        XCTAssertTrue(app.staticTexts["Try again with three lives."].exists)
+        app.buttons["retryLevel"].tap(); XCTAssertTrue(board.waitForExistence(timeout: 5)); XCTAssertEqual(lives, "3")
         app.buttons["pause"].tap(); app.buttons["pauseRestart"].tap(); XCTAssertEqual(lives, "3")
         app.buttons["back"].tap(); app.buttons["settingsTab"].tap()
         XCTAssertTrue(app.switches["Sound"].waitForExistence(timeout: 5)); capture("settings")
@@ -387,7 +382,7 @@ final class ArrowGateUITests: XCTestCase {
     func testTutorialHasNoTimeLimit() {
         app.launchArguments += ["-level", "1"]; app.launch()
         XCTAssertTrue(board.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts.matching(identifier: "countdown").matching(NSPredicate(format: "label CONTAINS %@", "∞")).firstMatch.exists)
+        XCTAssertFalse(app.descendants(matching: .any)["countdown"].exists)
         Thread.sleep(forTimeInterval: 3)
         XCTAssertTrue(summary.contains("arrows 19")); XCTAssertEqual(lives, "3")
     }
@@ -399,6 +394,6 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Take a breath"].exists)
         app.buttons["Continue"].tap()
         XCTAssertTrue(app.staticTexts["Time is up"].waitForExistence(timeout: 10)); capture("timeout")
-        app.buttons["retryOneHeart"].tap(); XCTAssertTrue(board.waitForExistence(timeout: 5)); XCTAssertEqual(lives, "1")
+        app.buttons["retryLevel"].tap(); XCTAssertTrue(board.waitForExistence(timeout: 5)); XCTAssertEqual(lives, "3")
     }
 }

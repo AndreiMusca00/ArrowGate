@@ -58,7 +58,6 @@ final class LocalDatabaseTests: XCTestCase {
         XCTAssertEqual(store.savedLevels.count, LevelRepository.count)
         XCTAssertEqual(store.savedChapters.count, 4)
         XCTAssertEqual(store.hints, 3)
-        XCTAssertEqual(store.reserveLives, 1)
         XCTAssertTrue(store.consumeHint())
         store.sound = false; store.haptics = false
         store.complete(6, time: 12); store.complete(6, time: 20)
@@ -72,6 +71,10 @@ final class LocalDatabaseTests: XCTestCase {
         XCTAssertEqual(restored.completedLevels, Set(1...6))
         XCTAssertFalse(restored.sound); XCTAssertFalse(restored.haptics)
         XCTAssertEqual(try reopened.metadata("bestTime.6"), "12.0")
+        XCTAssertEqual(try reopened.metadata("firstCompletionTime.6"), "12.0")
+        XCTAssertEqual(try reopened.metadata("lastCompletionTime.6"), "20.0")
+        XCTAssertEqual(try reopened.metadata("totalCompletionTime.6"), "32.0")
+        XCTAssertEqual(try reopened.metadata("completionCount.6"), "2")
         XCTAssertEqual(restored.savedLevels.map(\.id), Array(1...LevelRepository.count))
         XCTAssertEqual(restored.savedLevels[16].definition.arrows.map(\.cells), LevelRepository.level(17).arrows.map(\.cells))
         restored.complete(LevelRepository.count, time: 40)
@@ -79,9 +82,12 @@ final class LocalDatabaseTests: XCTestCase {
         restored.reset()
         XCTAssertEqual(restored.unlocked, 1)
         XCTAssertEqual(restored.hints, 3)
-        XCTAssertEqual(restored.reserveLives, 1)
         XCTAssertTrue(restored.completedLevels.isEmpty)
         XCTAssertNil(try reopened.metadata("bestTime.6"))
+        XCTAssertNil(try reopened.metadata("firstCompletionTime.6"))
+        XCTAssertNil(try reopened.metadata("lastCompletionTime.6"))
+        XCTAssertNil(try reopened.metadata("totalCompletionTime.6"))
+        XCTAssertNil(try reopened.metadata("completionCount.6"))
         XCTAssertNil(try reopened.metadata("campaignCompleted"))
         XCTAssertEqual(try reopened.levels().count, LevelRepository.count)
         XCTAssertEqual(try reopened.chapters().count, 4)
@@ -89,7 +95,6 @@ final class LocalDatabaseTests: XCTestCase {
         let resetStore = ProgressStore(defaults: defaults, database: reopened)
         XCTAssertEqual(resetStore.unlocked, 1)
         XCTAssertEqual(resetStore.hints, 3)
-        XCTAssertEqual(resetStore.reserveLives, 1)
     }
     func testMilestoneRewardsArePersistedAndGrantedOnce() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -105,14 +110,13 @@ final class LocalDatabaseTests: XCTestCase {
         XCTAssertNil(store.complete(5, time: 18))
         XCTAssertEqual(store.hints, 4)
 
-        XCTAssertEqual(store.complete(10, time: 30), LevelCompletionReward(kind: .life))
-        XCTAssertEqual(store.reserveLives, 2)
+        XCTAssertEqual(store.complete(10, time: 30), LevelCompletionReward(kind: .hint))
+        XCTAssertEqual(store.hints, 5)
         XCTAssertNil(store.complete(10, time: 25))
-        XCTAssertEqual(store.reserveLives, 2)
+        XCTAssertEqual(store.hints, 5)
 
         let restored = ProgressStore(defaults: defaults, database: try LocalDatabase(url: url))
-        XCTAssertEqual(restored.hints, 4)
-        XCTAssertEqual(restored.reserveLives, 2)
+        XCTAssertEqual(restored.hints, 5)
         XCTAssertNil(restored.complete(10, time: 20))
     }
     func testReadOnlyProgressImportIsOneTimeAndResetStaysReset() throws {

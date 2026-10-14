@@ -15,7 +15,6 @@ final class GameViewModel: ObservableObject {
     @Published private(set) var elapsed: TimeInterval = 0
     @Published private(set) var hintsUsed = 0
     @Published private(set) var hintBalance: Int
-    @Published private(set) var reserveLifeBalance: Int
     @Published private(set) var earnedReward: LevelCompletionReward?
     @Published private(set) var hintOfferVisible = false
     @Published private(set) var exiting: Set<Int> = []
@@ -40,7 +39,7 @@ final class GameViewModel: ObservableObject {
          timeLimit: TimeInterval? = nil, idleHintDelay: TimeInterval = 5) {
         self.hintLimit = hintLimit; self.idleHintDelay = idleHintDelay
         self.level = level; self.isReplay = isReplay; self.store = store
-        hintBalance = store.hints; reserveLifeBalance = store.reserveLives
+        hintBalance = store.hints
         self.timeLimit = timeLimit ?? level.timeLimit
         remaining = level.arrows; feedback = AudioHapticsManager(store: store)
         scene = GameScene(size: GameStyle.sceneSize); scene.configure(level: level)
@@ -81,7 +80,6 @@ final class GameViewModel: ObservableObject {
                         guard let self, self.generation == token, self.phase == .playing else { return }
                         self.earnedReward = self.store.complete(self.level.id, time: finishTime)
                         self.hintBalance = self.store.hints
-                        self.reserveLifeBalance = self.store.reserveLives
                         self.phase = .won
                     }
                 }
@@ -138,35 +136,16 @@ final class GameViewModel: ObservableObject {
     }
     func retryAfterLoss() {
         guard phase == .lost else { return }
-        resetRound(hearts: 1)
-    }
-    func continueWithReserveLife() {
-        guard phase == .lost, lossReason == .hearts, store.consumeReserveLife() else { return }
-        reserveLifeBalance = store.reserveLives
-        reviveWithOneHeart()
-    }
-    /// Rewarded-video providers can call this after playback completes.
-    /// Until an ad provider is connected, the video action grants locally.
-    func rewardedLifeDidComplete() {
-        guard phase == .lost, lossReason == .hearts else { return }
-        store.grantReserveLife()
-        reserveLifeBalance = store.reserveLives
-        continueWithReserveLife()
-    }
-    private func reviveWithOneHeart() {
-        hearts = 1
-        lastTick = Date(); lastProgressAt = Date()
-        phase = .playing
+        resetRound(hearts: GameStyle.startingHearts)
     }
     private func resetRound(hearts initialHearts: Int) {
         generation += 1; tracker.reset()
         remaining = level.arrows; hearts = initialHearts; mistakes = 0; elapsed = 0
         hintsUsed = 0; hintBalance = store.hints; hintOfferVisible = false
-        reserveLifeBalance = store.reserveLives; earnedReward = nil
+        earnedReward = nil
         exiting = []; lossReason = .hearts; lastTick = Date(); lastProgressAt = Date(); phase = .playing
         scene.isPaused = false; scene.configure(level: level); tutorialHint()
     }
     var formattedTime: String { hasTimeLimit ? format(TimeInterval(ceil(secondsRemaining))) : "∞" }
-    var formattedElapsed: String { format(elapsed) }
     private func format(_ seconds: TimeInterval) -> String { String(format: "%02d:%02d", Int(seconds) / 60, Int(seconds) % 60) }
 }

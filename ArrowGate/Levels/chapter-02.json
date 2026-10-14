@@ -38,7 +38,7 @@
       "chapterID": 2,
       "size": 18,
       "height": 15,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -418,7 +418,7 @@
       "chapterID": 2,
       "size": 18,
       "height": 16,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -817,7 +817,7 @@
       "chapterID": 2,
       "size": 20,
       "height": 20,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -1212,7 +1212,7 @@
       "chapterID": 2,
       "size": 20,
       "height": 14,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -1557,7 +1557,7 @@
       "chapterID": 2,
       "size": 15,
       "height": 24,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -2116,7 +2116,7 @@
       "chapterID": 2,
       "size": 17,
       "height": 20,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -2562,7 +2562,7 @@
       "chapterID": 2,
       "size": 24,
       "height": 22,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -3187,7 +3187,7 @@
       "chapterID": 2,
       "size": 30,
       "height": 30,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -4025,7 +4025,7 @@
       "chapterID": 2,
       "size": 20,
       "height": 13,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -4360,7 +4360,7 @@
       "chapterID": 2,
       "size": 25,
       "height": 36,
-      "timeLimit": 360,
+      "timeLimit": 0,
       "difficulty": "nightmare",
       "arrows": [
         {
@@ -5558,14 +5558,14 @@
       ],
       "completionArtwork": "ForestWatermillPiece10",
       "rewardName": "The Woodland Watermill · Teal door",
-      "completionReward": {"kind":"life","amount":1}
+      "completionReward": {"kind":"hint","amount":1}
     },
     {
       "id": 36,
       "chapterID": 2,
       "size": 20,
       "height": 15,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -5988,7 +5988,7 @@
       "chapterID": 2,
       "size": 20,
       "height": 24,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -6637,7 +6637,7 @@
       "chapterID": 2,
       "size": 20,
       "height": 14,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -7018,7 +7018,7 @@
       "chapterID": 2,
       "size": 30,
       "height": 26,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -7883,7 +7883,7 @@
       "chapterID": 2,
       "size": 20,
       "height": 19,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -8278,7 +8278,7 @@
       "chapterID": 2,
       "size": 24,
       "height": 17,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -8828,7 +8828,7 @@
       "chapterID": 2,
       "size": 30,
       "height": 25,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -9710,7 +9710,7 @@
       "chapterID": 2,
       "size": 17,
       "height": 20,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -10170,7 +10170,7 @@
       "chapterID": 2,
       "size": 16,
       "height": 25,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -10650,7 +10650,7 @@
       "chapterID": 2,
       "size": 20,
       "height": 18,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -11040,14 +11040,14 @@
       ],
       "completionArtwork": "ForestWatermillPiece20",
       "rewardName": "The Woodland Watermill · Water chute",
-      "completionReward": {"kind":"life","amount":1}
+      "completionReward": {"kind":"hint","amount":1}
     },
     {
       "id": 46,
       "chapterID": 2,
       "size": 18,
       "height": 20,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -11425,7 +11425,7 @@
       "chapterID": 2,
       "size": 24,
       "height": 22,
-      "timeLimit": 180,
+      "timeLimit": 0,
       "difficulty": "hard",
       "arrows": [
         {
@@ -12053,7 +12053,7 @@
       "chapterID": 2,
       "size": 20,
       "height": 17,
-      "timeLimit": 120,
+      "timeLimit": 0,
       "difficulty": "easy",
       "arrows": [
         {
@@ -12458,7 +12458,7 @@
       "chapterID": 2,
       "size": 30,
       "height": 24,
-      "timeLimit": 240,
+      "timeLimit": 0,
       "difficulty": "veryHard",
       "arrows": [
         {
@@ -13299,7 +13299,7 @@
       "chapterID": 2,
       "size": 36,
       "height": 35,
-      "timeLimit": 360,
+      "timeLimit": 0,
       "difficulty": "nightmare",
       "arrows": [
         {

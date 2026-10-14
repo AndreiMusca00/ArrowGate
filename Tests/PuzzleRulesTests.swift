@@ -19,7 +19,7 @@ final class PuzzleRulesTests: XCTestCase {
         try JSONEncoder().encode(fixtures).write(to: URL(fileURLWithPath: path))
     }
     func testAllPublishedLevelsAndEveryLegalChoice() throws {
-        XCTAssertEqual(LevelRepository.version, 13)
+        XCTAssertEqual(LevelRepository.version, 14)
         XCTAssertEqual(LevelRepository.levelsPerChapter, 25)
         XCTAssertEqual(LevelRepository.levels.count, 100)
         for level in LevelRepository.levels {
@@ -53,9 +53,7 @@ final class PuzzleRulesTests: XCTestCase {
             })
             XCTAssertTrue(level.arrows.allSatisfy { $0.length >= 3 })
             XCTAssertNotNil(LevelValidator.solution(for: level))
-            if level.id == 1 { XCTAssertEqual(level.timeLimit, 0) }
-            else if level.id == 100 { XCTAssertEqual(level.timeLimit, 600) }
-            else { XCTAssertTrue((120...360).contains(level.timeLimit)) }
+            XCTAssertEqual(level.timeLimit, 0)
         }
         for chapter in LevelRepository.chapters {
             let levels = LevelRepository.levels(in: chapter)
@@ -138,7 +136,7 @@ final class PuzzleRulesTests: XCTestCase {
         XCTAssertEqual(LevelRepository.level(25).completionArtwork, "EnchantedTreeComplete")
         XCTAssertEqual(LevelRepository.level(25).difficulty, .nightmare)
         XCTAssertEqual(LevelRepository.level(5).completionReward, LevelCompletionReward(kind: .hint))
-        XCTAssertEqual(LevelRepository.level(10).completionReward, LevelCompletionReward(kind: .life))
+        XCTAssertEqual(LevelRepository.level(10).completionReward, LevelCompletionReward(kind: .hint))
     }
     func testWatermillChapterArtworkAndProgression() {
         let chapter = LevelRepository.chapter(2)
@@ -299,7 +297,6 @@ final class PuzzleRulesTests: XCTestCase {
         let store = ProgressStore(defaults: defaults)
         XCTAssertEqual(store.unlocked, 1)
         XCTAssertEqual(store.hints, 3)
-        XCTAssertEqual(store.reserveLives, 1)
         XCTAssertTrue(store.consumeHint())
         XCTAssertEqual(store.hints, 2)
         store.sound = false; store.haptics = false
@@ -316,7 +313,6 @@ final class PuzzleRulesTests: XCTestCase {
         XCTAssertEqual(ProgressStore(defaults: defaults).unlocked, 1)
         XCTAssertTrue(loaded.completedLevels.isEmpty)
         XCTAssertEqual(loaded.hints, 3)
-        XCTAssertEqual(loaded.reserveLives, 1)
         XCTAssertEqual(defaults.double(forKey: "bestTime.1"), 0)
         XCTAssertFalse(ProgressStore(defaults: defaults).sound)
     }

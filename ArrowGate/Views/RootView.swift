@@ -90,7 +90,6 @@ struct SettingsView: View {
                 Section("Progress") {
                     Text("Unlocked level: \(store.unlocked) / \(LevelRepository.count)")
                     LabeledContent("Hints", value: String(store.hints))
-                    LabeledContent("Reserve lives", value: String(store.reserveLives))
                     Button("Reset Progress", role: .destructive) { resetConfirmation = true }
                 }
             }

@@ -11,7 +11,7 @@ enum LevelDifficulty: String, Codable {
 }
 
 enum LevelRewardKind: String, Codable {
-    case hint, life
+    case hint
 }
 
 struct LevelCompletionReward: Codable, Equatable {
