@@ -1,0 +1,64 @@
+{
+  "gridSizes": {
+    "tutorial": 16,
+    "easy": 26,
+    "normal": 28,
+    "hard": 32,
+    "veryHard": 40,
+    "nightmare": 48
+  },
+  "introGridSizes": [
+    24,
+    24,
+    26,
+    26
+  ],
+  "chapterPlan": [
+    "easy",
+    "easy",
+    "easy",
+    "easy",
+    "hard",
+    "easy",
+    "hard",
+    "veryHard",
+    "easy",
+    "nightmare",
+    "easy",
+    "hard",
+    "easy",
+    "veryHard",
+    "easy",
+    "hard",
+    "veryHard",
+    "easy",
+    "hard",
+    "easy",
+    "easy",
+    "hard",
+    "easy",
+    "veryHard",
+    "nightmare"
+  ],
+  "arrowCounts": {
+    "tutorial": 50,
+    "easy": 50,
+    "normal": 50,
+    "hard": 75,
+    "veryHard": 100,
+    "nightmare": 150
+  },
+  "levelOverrides": {
+    "100": {
+      "gridSize": 60,
+      "arrowCount": 250,
+      "candidateCount": 6,
+      "tuningPasses": 8,
+      "depthWeight": 160,
+      "freeWeight": 1000,
+      "minimumDependencyLayers": 45,
+      "maximumInitiallyFree": 25,
+      "timeLimit": 600
+    }
+  }
+}

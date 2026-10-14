@@ -1,0 +1,51 @@
+{
+  "gridSizes": {
+    "tutorial": 16,
+    "easy": 20,
+    "normal": 22,
+    "hard": 24,
+    "veryHard": 30,
+    "nightmare": 36
+  },
+  "introGridSizes": [
+    18,
+    18,
+    20,
+    20
+  ],
+  "chapterPlan": [
+    "easy",
+    "easy",
+    "easy",
+    "easy",
+    "hard",
+    "easy",
+    "hard",
+    "veryHard",
+    "easy",
+    "nightmare",
+    "easy",
+    "hard",
+    "easy",
+    "veryHard",
+    "easy",
+    "hard",
+    "veryHard",
+    "easy",
+    "hard",
+    "easy",
+    "easy",
+    "hard",
+    "easy",
+    "veryHard",
+    "nightmare"
+  ],
+  "arrowCounts": {
+    "tutorial": 30,
+    "easy": 30,
+    "normal": 30,
+    "hard": 45,
+    "veryHard": 60,
+    "nightmare": 80
+  }
+}

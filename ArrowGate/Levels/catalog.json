@@ -1,5 +1,5 @@
 {
-  "version": 10,
+  "version": 13,
   "configuration": {"levelsPerChapter":25},
-  "chapterFiles": ["chapter-01.json"]
+  "chapterFiles": ["chapter-01.json","chapter-02.json","chapter-03.json","chapter-04.json"]
 }

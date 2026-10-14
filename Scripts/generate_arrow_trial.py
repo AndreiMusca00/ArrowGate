@@ -5,6 +5,7 @@ Uses point_shape_profiles.json. Writes chapter only after every board is solved.
 import argparse, json, random, math, sys
 from pathlib import Path
 from PIL import Image, ImageDraw
+from catalog_json import dumps_catalog
 from generate_point_shapes import extract, components
 DIRS=[(1,0),(0,1),(-1,0),(0,-1)]
 COLOUR='#34373D'
@@ -176,11 +177,11 @@ def repair_short_paths(arrows,active):
         if not found:raise RuntimeError('Unable to repartition a short path')
     raise RuntimeError('Short-path repair limit reached')
 
-def tune_dependencies(arrows,active,difficulty):
+def tune_dependencies(arrows,active,difficulty,passes=3,depth_weight=20,free_weight=1000):
     if difficulty not in ('hard','veryHard','nightmare'):return arrows
     best=analyse(arrows,active)
-    def score(stats):return -stats['initiallyFree']*1000+stats['dependencyLayers']*20
-    for _ in range(3):
+    def score(stats):return -stats['initiallyFree']*free_weight+stats['dependencyLayers']*depth_weight
+    for _ in range(passes):
         changed=False
         for i,(d,body) in enumerate(arrows):
             reversed_body=list(reversed(body))
@@ -210,16 +211,21 @@ def main():
     ap.add_argument('--chapter',type=Path,default=Path('ArrowGate/Levels/chapter-01.json'))
     ap.add_argument('--output',type=Path,default=Path('Design/ArrowTrial'))
     ap.add_argument('--publish',action='store_true')
+    ap.add_argument('--profiles',type=Path,default=Path(__file__).with_name('point_shape_profiles.json'))
+    global TARGETS
     args=ap.parse_args();args.output.mkdir(parents=True,exist_ok=True)
-    chapter=json.loads(args.chapter.read_text());profiles=json.loads(Path(__file__).with_name('point_shape_profiles.json').read_text())
+    chapter=json.loads(args.chapter.read_text());profiles=json.loads(args.profiles.read_text())
+    TARGETS=profiles['arrowCounts']
     if len(chapter['levels'])!=len(profiles['chapterPlan']):ap.error('Chapter and plan length mismatch')
     assets={p.parent.stem:p for p in Path('ArrowGate/Assets.xcassets').rglob('*.png') if p.parent.suffix=='.imageset'}
     report=[]
-    backup=args.output/'original-chapter-01.json'
+    backup=args.output/('original-'+args.chapter.name)
     if not backup.exists():backup.write_text(args.chapter.read_text())
     for index,level in enumerate(chapter['levels']):
-        difficulty=profiles['chapterPlan'][index];target=TARGETS[difficulty]
-        grid=profiles['introGridSizes'][index] if index<4 else profiles['gridSizes'][difficulty]
+        difficulty=profiles['chapterPlan'][index]
+        override=profiles.get('levelOverrides',{}).get(str(level['id']),{})
+        target=override.get('arrowCount',TARGETS[difficulty])
+        grid=override.get('gridSize',profiles['introGridSizes'][index] if index<4 else profiles['gridSizes'][difficulty])
         while True:
             shape,_=extract(assets[level['completionArtwork']],grid,128,.35)
             active={(c['x'],c['y']) for c in shape['activeCells']}
@@ -254,12 +260,24 @@ def main():
                 if arrows is not None:grid+=extra;break
         if arrows is None:raise RuntimeError(f"Could not fill level {level['id']} with {target} arrows")
         arrows=fit_budget(arrows,active,target)
-        arrows=tune_dependencies(arrows,active,difficulty)
+        settings=dict(passes=override.get('tuningPasses',3),depth_weight=override.get('depthWeight',20),free_weight=override.get('freeWeight',1000))
+        arrows=tune_dependencies(arrows,active,difficulty,**settings)
+        def ranking(candidate):
+            stats=analyse(candidate,active)
+            penalty=max(0,override.get('minimumDependencyLayers',0)-stats['dependencyLayers'])*10000
+            penalty+=max(0,stats['initiallyFree']-override.get('maximumInitiallyFree',len(candidate)))*10000
+            return -penalty-stats['initiallyFree']*settings['free_weight']+stats['dependencyLayers']*settings['depth_weight']
+        for candidate_index in range(1,override.get('candidateCount',1)):
+            candidate=generate(active,target,level['id']*1000+100+candidate_index)
+            if candidate is None or len(candidate)!=target:continue
+            candidate=tune_dependencies(candidate,active,difficulty,**settings)
+            if ranking(candidate)>ranking(arrows):arrows=candidate
+            print(f"Level {level['id']}: compared candidate {candidate_index+1}",flush=True)
         if len(arrows)!=target:raise RuntimeError(f"Level {level['id']} did not reach its arrow budget")
         metrics=analyse(arrows,active)
         cell=lambda c:{'x':c[0],'y':c[1]}
         level.update(size=shape['size'],height=shape['height'],difficulty=difficulty,
-                     timeLimit=0 if level['id']==1 else {'easy':120,'hard':180,'veryHard':240,'nightmare':360}[difficulty],
+                     timeLimit=override.get('timeLimit',0 if level['id']==1 else {'easy':120,'hard':180,'veryHard':240,'nightmare':360}[difficulty]),
                      arrows=[{'id':i,'head':cell(body[0]),'direction':d,'color':COLOUR,'length':len(body),'body':[cell(c) for c in body]} for i,(d,body) in enumerate(arrows)],
                      gates=[],activeCells=[cell(c) for c in sorted(active,key=lambda c:(c[1],c[0]))],
                      targetCells=[{'cell':cell(c),'color':COLOUR} for c in sorted(active,key=lambda c:(c[1],c[0]))])
@@ -269,8 +287,8 @@ def main():
         (args.output/f"level-{level['id']:02d}.json").write_text(json.dumps({'level':level,'report':record},ensure_ascii=False)+'\n')
         draw_board(arrows,active,shape['size'],shape['height'],args.output/f"level-{level['id']:02d}.png")
         print(f"Level {level['id']}: {difficulty}, {grid}, {len(active)} points, {len(arrows)} arrows, {metrics['initiallyFree']} free",flush=True)
-    (args.output/'chapter-01.json').write_text(json.dumps(chapter,ensure_ascii=False,separators=(',',':'))+'\n')
+    (args.output/args.chapter.name).write_text(dumps_catalog(chapter)+'\n')
     (args.output/'report.json').write_text(json.dumps(report,indent=2)+'\n')
-    if args.publish:args.chapter.write_text(json.dumps(chapter,ensure_ascii=False,separators=(',',':'))+'\n')
+    if args.publish:args.chapter.write_text(dumps_catalog(chapter)+'\n')
 
 if __name__=='__main__':main()
