@@ -53,6 +53,9 @@ final class ProgressStore: ObservableObject {
     @Published private(set) var completedLevels: Set<Int> = []
     @Published private(set) var hints = 0
     @Published private(set) var activeSession: LevelSessionSnapshot? = nil
+    @Published private(set) var eventProgress: [String: Int] = [:]
+    @Published private(set) var completedEventLevels: [String: Set<Int>] = [:]
+    @Published private(set) var eventTrophies: [String: Set<String>] = [:]
     @Published var sound: Bool { didSet { defaults.set(sound, forKey: "soundEnabled") } }
     @Published var haptics: Bool { didSet { defaults.set(haptics, forKey: "hapticsEnabled") } }
 
@@ -75,6 +78,12 @@ final class ProgressStore: ObservableObject {
                 completedLevels = Set(1..<unlocked)
                 if try database.metadata("campaignCompleted") == "1" { completedLevels.insert(LevelRepository.count) }
                 activeSession = try database.activeSession()
+                for event in LevelRepository.events {
+                    let progressKey = Self.progressKey(for: event)
+                    eventProgress[progressKey] = min(event.progress.goal, try database.eventProgress(progressKey))
+                    eventTrophies[event.id] = try database.eventTrophies(event.id)
+                    completedEventLevels[event.id] = try database.completedEventLevels(event.id)
+                }
             } catch { storageError = error.localizedDescription }
         } else {
             hints = max(0, defaults.integer(forKey: "hintCount"))
@@ -92,7 +101,86 @@ final class ProgressStore: ObservableObject {
             if let data = defaults.data(forKey: Self.activeSessionDefaultsKey) {
                 activeSession = try? JSONDecoder().decode(LevelSessionSnapshot.self, from: data)
             }
+            for event in LevelRepository.events {
+                if let data = defaults.data(forKey: "eventCompleted.\(event.id)") {
+                    completedEventLevels[event.id] = try? JSONDecoder().decode(Set<Int>.self, from: data)
+                }
+                let progressKey = Self.progressKey(for: event)
+                eventProgress[progressKey] = min(event.progress.goal, max(0, defaults.integer(forKey: "eventProgress.\(progressKey)")))
+                if let data = defaults.data(forKey: "eventTrophies.\(event.id)"),
+                   let trophies = try? JSONDecoder().decode(Set<String>.self, from: data) {
+                    eventTrophies[event.id] = trophies
+                }
+            }
         }
+    }
+
+    func progress(for event: GameEventDefinition, at date: Date = Date()) -> Int {
+        min(event.progress.goal, max(0, eventProgress[Self.progressKey(for: event, at: date)] ?? 0))
+    }
+
+    func isEventLevelUnlocked(_ eventID: String, levelID: Int) -> Bool {
+        let puzzles = LevelRepository.eventPuzzles(for: eventID)
+        guard let index = puzzles.firstIndex(where: { $0.id == levelID }) else { return false }
+        let completed = completedEventLevels[eventID, default: []]
+        return completed.contains(levelID) || puzzles.prefix(index).allSatisfy { completed.contains($0.id) }
+    }
+
+    @discardableResult
+    func completeEventLevel(_ eventID: String, levelID: Int, on date: Date = Date()) -> Bool {
+        guard let event = LevelRepository.event(eventID), event.kind == .limitedCollection,
+              event.lifecycle(at: date) == .active,
+              isEventLevelUnlocked(eventID, levelID: levelID),
+              LevelRepository.eventPuzzles(for: eventID).contains(where: { $0.id == levelID }) else { return false }
+        var completed = completedEventLevels[eventID, default: []]
+        guard completed.insert(levelID).inserted else { return false }
+        if let database {
+            do { try database.saveCompletedEventLevels(completed, eventID: eventID) }
+            catch { storageError = error.localizedDescription; return false }
+        }
+        completedEventLevels[eventID] = completed
+        eventProgress[eventID] = completed.count
+        defaults.set(completed.count, forKey: "eventProgress.\(eventID)")
+        defaults.set(try? JSONEncoder().encode(completed), forKey: "eventCompleted.\(eventID)")
+        clearSession(levelID: levelID)
+        return true
+    }
+
+    func hasTrophy(for event: GameEventDefinition, monthKey: String) -> Bool {
+        eventTrophies[event.id, default: []].contains(monthKey)
+    }
+
+    /// Entry point for the future daily/limited-event game flow. Catalog data
+    /// defines the goal while the player's count and trophies remain local.
+    func recordEventCompletion(_ event: GameEventDefinition, on date: Date = Date()) {
+        guard event.lifecycle(at: date) == .active else { return }
+        let progressKey = Self.progressKey(for: event, at: date)
+        let next = min(event.progress.goal, progress(for: event, at: date) + 1)
+        var trophies = eventTrophies[event.id, default: []]
+        if event.reward.kind == .monthlyTrophy, next == event.progress.goal {
+            trophies.insert(Self.monthKey(for: date))
+        }
+        if let database {
+            do {
+                try database.setEventProgress(next, eventID: progressKey)
+                try database.setEventTrophies(trophies, eventID: event.id)
+            } catch { storageError = error.localizedDescription; return }
+        }
+        eventProgress[progressKey] = next
+        eventTrophies[event.id] = trophies
+        defaults.set(next, forKey: "eventProgress.\(progressKey)")
+        if let data = try? JSONEncoder().encode(trophies) {
+            defaults.set(data, forKey: "eventTrophies.\(event.id)")
+        }
+    }
+
+    static func monthKey(for date: Date, calendar: Calendar = .current) -> String {
+        let values = calendar.dateComponents([.year, .month], from: date)
+        return String(format: "%04d-%02d", values.year ?? 0, values.month ?? 0)
+    }
+
+    private static func progressKey(for event: GameEventDefinition, at date: Date = Date()) -> String {
+        event.kind == .dailyChallenge ? "\(event.id).\(monthKey(for: date))" : event.id
     }
 
     func session(for level: LevelDefinition) -> LevelSessionSnapshot? {
@@ -185,6 +273,7 @@ final class ProgressStore: ObservableObject {
         }
         unlocked = 1; completedLevels = []; hints = 3
         activeSession = nil
+        eventProgress = [:]; eventTrophies = [:]; completedEventLevels = [:]
         defaults.set(1, forKey: "unlockedLevel"); defaults.set(3, forKey: "hintCount")
         defaults.removeObject(forKey: "reserveLifeCount")
         for id in 1...LevelRepository.count {
@@ -197,5 +286,12 @@ final class ProgressStore: ObservableObject {
         }
         defaults.removeObject(forKey: "campaignCompleted")
         defaults.removeObject(forKey: Self.activeSessionDefaultsKey)
+        for event in LevelRepository.events {
+            defaults.removeObject(forKey: "eventTrophies.\(event.id)")
+            defaults.removeObject(forKey: "eventCompleted.\(event.id)")
+        }
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("eventProgress.") {
+            defaults.removeObject(forKey: key)
+        }
     }
 }

@@ -54,7 +54,7 @@ enum LevelValidator {
             let targetCells = targets.map(\.cell)
             guard !targets.isEmpty,
                   Set(targetCells).count == targetCells.count,
-                  targetCells.allSatisfy(level.contains) else { return nil }
+                  targetCells.allSatisfy(containsFast) else { return nil }
             if let activeCells = level.activeCells {
                 guard Set(targetCells) == Set(activeCells) else { return nil }
             }

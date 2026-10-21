@@ -1,0 +1,13 @@
+{
+  "event": {
+    "id": "eventSpeedRun",
+    "title": "Autumn Dash",
+    "subtitle": "This event has ended",
+    "kind": "limitedCollection",
+    "priority": 30,
+    "schedule": {"previewStartsAt":"2026-09-01T00:00:00Z","startsAt":"2026-09-15T00:00:00Z","endsAt":"2026-10-12T00:00:00Z"},
+    "progress": {"goal":12,"unitName":"pieces"},
+    "reward": {"kind":"assembledArtwork","title":"Golden Grove","subtitle":"A limited autumn collectible","pieceCount":12,"systemSymbol":"leaf.fill","assetName":null},
+    "style": {"primaryColor":"#A6552B","secondaryColor":"#E3A63B","backgroundColor":"#F8EFD9","decoration":"fallingLeaves","symbol":"leaf.fill"}
+  }
+}

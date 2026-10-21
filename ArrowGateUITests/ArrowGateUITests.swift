@@ -151,6 +151,45 @@ final class ArrowGateUITests: XCTestCase {
         XCTAssertEqual(expandedCard.frame.midY, screenFrame.midY, accuracy: 2)
     }
 
+    func testEventsCollectionShowsMonthlyAndSeasonalRewards() {
+        app.launch()
+        XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))
+        app.buttons["collectionTab"].tap()
+        XCTAssertTrue(app.staticTexts["collectionPage"].waitForExistence(timeout: 5))
+        app.buttons["collectionEventsTab"].tap()
+        XCTAssertTrue(app.staticTexts["DAILY TROPHIES"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Moonlit Manor"].exists)
+        XCTAssertFalse(app.staticTexts["Golden Grove"].exists)
+        capture("events-collection")
+    }
+
+    func testHalloweenIsPlayableNowAndReturnsToItsCalendar() {
+        app.launch()
+        let entry = app.buttons["openEvent-eventHalloween"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 15))
+        entry.tap()
+        XCTAssertTrue(app.scrollViews["eventLevelList"].waitForExistence(timeout: 10))
+        let first = app.buttons["eventHalloweenDay1"]
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        XCTAssertTrue(first.isEnabled)
+        XCTAssertFalse(app.buttons["eventHalloweenDay2"].isEnabled)
+        XCTAssertFalse(app.images["eventFinalArtwork"].exists)
+        XCTAssertFalse(app.images["eventPieceArtwork1"].exists)
+        first.tap()
+        XCTAssertTrue(board.waitForExistence(timeout: 15))
+        XCTAssertTrue(summary.contains("Level 10001;"))
+        app.buttons["back"].tap()
+        XCTAssertTrue(first.waitForExistence(timeout: 10))
+        let last = app.buttons["eventHalloweenDay30"]
+        for _ in 0..<12 {
+            if last.exists && last.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(last.isHittable)
+        XCTAssertFalse(last.isEnabled)
+        capture("halloween-locked-calendar")
+    }
+
     func testLiquidGlassNavigationAndDirectPlay() {
         app.launch()
         XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))

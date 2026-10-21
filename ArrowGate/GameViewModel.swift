@@ -6,6 +6,7 @@ enum GamePhase { case playing, paused, won, lost }
 enum LossReason { case hearts, timeout }
 final class GameViewModel: ObservableObject {
     let level: LevelDefinition
+    let eventID: String?
     let isReplay: Bool
     let scene: GameScene
     let timeLimit: TimeInterval
@@ -39,10 +40,10 @@ final class GameViewModel: ObservableObject {
     var secondsRemaining: TimeInterval { max(0, timeLimit - elapsed) }
     init(level: LevelDefinition, store: ProgressStore, isReplay: Bool = false, hintLimit: Int? = nil,
          timeLimit: TimeInterval? = nil, idleHintDelay: TimeInterval = 10,
-         session: LevelSessionSnapshot? = nil) {
+         session: LevelSessionSnapshot? = nil, eventID: String? = nil) {
         let restored = !isReplay && session?.isValid(for: level) == true ? session : nil
         self.hintLimit = hintLimit; self.idleHintDelay = idleHintDelay
-        self.level = level; self.isReplay = isReplay; self.store = store
+        self.level = level; self.eventID = eventID; self.isReplay = isReplay; self.store = store
         hintBalance = store.hints
         self.timeLimit = timeLimit ?? level.timeLimit
         removedArrowIDs = restored?.removedArrowIDs ?? []
@@ -100,7 +101,12 @@ final class GameViewModel: ObservableObject {
                     self.scene.revealPainting { [weak self] in
                         guard let self, self.generation == token, self.phase == .playing else { return }
                         self.pendingSessionSave?.cancel()
-                        self.earnedReward = self.store.complete(self.level.id, time: finishTime)
+                        if let eventID = self.eventID {
+                            self.store.completeEventLevel(eventID, levelID: self.level.id)
+                            self.earnedReward = nil
+                        } else {
+                            self.earnedReward = self.store.complete(self.level.id, time: finishTime)
+                        }
                         self.hintBalance = self.store.hints
                         self.phase = .won
                     }
@@ -199,6 +205,12 @@ final class GameViewModel: ObservableObject {
         let work = DispatchWorkItem { [weak self] in self?.persistSession() }
         pendingSessionSave = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+    }
+    var levelDisplayTitle: String {
+        if let eventID, let puzzle = LevelRepository.eventPuzzles(for: eventID).first(where: { $0.id == level.id }) {
+            return "November \(puzzle.day)"
+        }
+        return "Level \(level.id)"
     }
     var formattedTime: String { hasTimeLimit ? format(TimeInterval(ceil(secondsRemaining))) : "∞" }
     private func format(_ seconds: TimeInterval) -> String { String(format: "%02d:%02d", Int(seconds) / 60, Int(seconds) % 60) }

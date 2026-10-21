@@ -1,0 +1,13 @@
+{
+  "event": {
+    "id": "eventDailySprint",
+    "title": "Daily Challenge",
+    "subtitle": "One fresh picture every day",
+    "kind": "dailyChallenge",
+    "priority": 10,
+    "schedule": {"previewStartsAt":"2026-01-01T00:00:00Z","startsAt":"2026-01-01T00:00:00Z","endsAt":null},
+    "progress": {"goal":20,"unitName":"days"},
+    "reward": {"kind":"monthlyTrophy","title":"Monthly Trophy","subtitle":"Complete 20 daily challenges","pieceCount":20,"systemSymbol":"trophy.fill","assetName":null},
+    "style": {"primaryColor":"#0B7778","secondaryColor":"#64D1C2","backgroundColor":"#E8F7F1","decoration":"orbitDots","symbol":"calendar.badge.clock"}
+  }
+}

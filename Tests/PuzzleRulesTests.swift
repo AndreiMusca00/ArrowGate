@@ -19,7 +19,7 @@ final class PuzzleRulesTests: XCTestCase {
         try JSONEncoder().encode(fixtures).write(to: URL(fileURLWithPath: path))
     }
     func testAllPublishedLevelsAndEveryLegalChoice() throws {
-        XCTAssertEqual(LevelRepository.version, 14)
+        XCTAssertEqual(LevelRepository.version, 16)
         XCTAssertEqual(LevelRepository.levelsPerChapter, 25)
         XCTAssertEqual(LevelRepository.levels.count, 100)
         for level in LevelRepository.levels {
@@ -44,6 +44,56 @@ final class PuzzleRulesTests: XCTestCase {
             }
         }
     }
+    func testPublishedEventsHaveCalendarDrivenStates() throws {
+        XCTAssertEqual(LevelRepository.events.map(\.id), ["eventDailySprint", "eventHalloween", "eventSpeedRun"])
+        let formatter = ISO8601DateFormatter()
+        let october = try XCTUnwrap(formatter.date(from: "2026-10-14T12:00:00Z"))
+        let november = try XCTUnwrap(formatter.date(from: "2026-11-14T12:00:00Z"))
+        let daily = try XCTUnwrap(LevelRepository.events.first { $0.id == "eventDailySprint" })
+        let halloween = try XCTUnwrap(LevelRepository.events.first { $0.id == "eventHalloween" })
+        let autumn = try XCTUnwrap(LevelRepository.events.first { $0.id == "eventSpeedRun" })
+        XCTAssertEqual(daily.lifecycle(at: october), .active)
+        XCTAssertEqual(halloween.lifecycle(at: october), .active)
+        XCTAssertEqual(halloween.lifecycle(at: november), .active)
+        XCTAssertEqual(autumn.lifecycle(at: october), .ended)
+        XCTAssertFalse(autumn.appearsOnHome(at: october))
+    }
+    func testRemovingHalloweenPreviewAccessRestoresNovemberSchedule() throws {
+        let event = try XCTUnwrap(LevelRepository.event("eventHalloween"))
+        let normal = GameEventDefinition(id: event.id, title: event.title, subtitle: event.subtitle,
+                                        kind: event.kind, priority: event.priority,
+                                        schedule: GameEventSchedule(previewStartsAt: event.schedule.previewStartsAt,
+                                                                    startsAt: event.schedule.startsAt,
+                                                                    endsAt: event.schedule.endsAt, testingStartsAt: nil),
+                                        progress: event.progress, reward: event.reward, style: event.style)
+        let formatter = ISO8601DateFormatter()
+        XCTAssertEqual(normal.lifecycle(at: try XCTUnwrap(formatter.date(from: "2026-10-14T12:00:00Z"))), .comingSoon)
+        XCTAssertEqual(normal.lifecycle(at: try XCTUnwrap(formatter.date(from: "2026-10-31T22:00:00Z"))), .active)
+    }
+
+    func testHalloweenCalendarAndAllPublishedPuzzles() throws {
+        let event = try XCTUnwrap(LevelRepository.event("eventHalloween"))
+        let puzzles = LevelRepository.eventPuzzles(for: event.id)
+        XCTAssertEqual(puzzles.count, 30)
+        XCTAssertEqual(puzzles.map(\.day), Array(1...30))
+        XCTAssertEqual(puzzles.map(\.date), (1...30).map { String(format: "2026-11-%02d", $0) })
+        XCTAssertEqual(Set(puzzles.map(\.id)).count, 30)
+        XCTAssertTrue(Set(puzzles.map(\.id)).isDisjoint(with: Set(LevelRepository.levels.map(\.id))))
+        let formatter = ISO8601DateFormatter()
+        XCTAssertEqual(event.lifecycle(at: try XCTUnwrap(formatter.date(from: "2026-10-13T20:59:59Z"))), .comingSoon)
+        XCTAssertEqual(event.lifecycle(at: try XCTUnwrap(formatter.date(from: "2026-10-13T21:00:00Z"))), .active)
+        XCTAssertEqual(event.lifecycle(at: try XCTUnwrap(formatter.date(from: "2026-11-30T22:00:00Z"))), .ended)
+        for puzzle in puzzles {
+            XCTAssertEqual(puzzle.level.difficulty, .nightmare)
+            XCTAssertEqual(puzzle.level.arrows.count, 150)
+            XCTAssertEqual(puzzle.level.timeLimit, 0)
+            XCTAssertTrue(puzzle.level.arrows.allSatisfy { $0.length >= 3 })
+            let solution = try XCTUnwrap(LevelValidator.solution(for: puzzle.level))
+            XCTAssertEqual(solution.count, 150)
+            XCTAssertEqual(Set(puzzle.level.activeCells ?? []), Set(puzzle.level.arrows.flatMap(\.cells)))
+        }
+    }
+
     func testCampaignDifficultyShapesAndTimeBudgets() throws {
         for level in LevelRepository.levels {
             XCTAssertTrue(level.gates.allSatisfy { $0.thawAfterMoves == 0 })

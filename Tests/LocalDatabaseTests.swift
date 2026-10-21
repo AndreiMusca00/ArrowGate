@@ -148,6 +148,77 @@ final class LocalDatabaseTests: XCTestCase {
         XCTAssertEqual(restored.hints, 5)
         XCTAssertNil(restored.complete(10, time: 20))
     }
+    func testHalloweenCompletionIsUniquePersistentAndSeparateFromCampaign() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let suite = "HalloweenProgress.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let url = directory.appendingPathComponent("game.sqlite")
+        let event = try XCTUnwrap(LevelRepository.event("eventHalloween"))
+        let puzzles = LevelRepository.eventPuzzles(for: event.id)
+        let date = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-14T12:00:00Z"))
+        let store = ProgressStore(defaults: defaults, database: try LocalDatabase(url: url))
+        XCTAssertTrue(store.isEventLevelUnlocked(event.id, levelID: puzzles[0].id))
+        XCTAssertFalse(store.isEventLevelUnlocked(event.id, levelID: puzzles[1].id))
+        XCTAssertFalse(store.completeEventLevel(event.id, levelID: puzzles[29].id, on: date))
+        XCTAssertTrue(store.completeEventLevel(event.id, levelID: puzzles[0].id, on: date))
+        XCTAssertFalse(store.completeEventLevel(event.id, levelID: puzzles[0].id, on: date))
+        XCTAssertTrue(store.isEventLevelUnlocked(event.id, levelID: puzzles[1].id))
+        XCTAssertFalse(store.isEventLevelUnlocked(event.id, levelID: puzzles[2].id))
+        XCTAssertFalse(store.completeEventLevel(event.id, levelID: 1, on: date))
+        XCTAssertEqual(store.progress(for: event, at: date), 1)
+        XCTAssertEqual(store.unlocked, 1)
+        XCTAssertTrue(store.completedLevels.isEmpty)
+        let restored = ProgressStore(defaults: defaults, database: try LocalDatabase(url: url))
+        XCTAssertEqual(restored.completedEventLevels[event.id], Set([puzzles[0].id]))
+        XCTAssertEqual(restored.progress(for: event, at: date), 1)
+        for puzzle in puzzles.dropFirst() {
+            XCTAssertTrue(restored.isEventLevelUnlocked(event.id, levelID: puzzle.id))
+            XCTAssertTrue(restored.completeEventLevel(event.id, levelID: puzzle.id, on: date))
+        }
+        XCTAssertEqual(restored.progress(for: event, at: date), 30)
+        XCTAssertEqual(restored.unlocked, 1)
+        restored.reset()
+        XCTAssertEqual(restored.progress(for: event, at: date), 0)
+        let reset = ProgressStore(defaults: defaults, database: try LocalDatabase(url: url))
+        XCTAssertTrue(reset.completedEventLevels[event.id, default: []].isEmpty)
+    }
+
+    func testHalloweenFallbackStorageSurvivesReload() throws {
+        let suite = "HalloweenFallback.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let event = try XCTUnwrap(LevelRepository.event("eventHalloween"))
+        let puzzle = try XCTUnwrap(LevelRepository.eventPuzzles(for: event.id).first)
+        let date = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-05T12:00:00Z"))
+        let store = ProgressStore(defaults: defaults)
+        XCTAssertTrue(store.completeEventLevel(event.id, levelID: puzzle.id, on: date))
+        let restored = ProgressStore(defaults: defaults)
+        XCTAssertEqual(restored.completedEventLevels[event.id], Set([puzzle.id]))
+        XCTAssertEqual(restored.progress(for: event, at: date), 1)
+    }
+
+    func testDailyEventProgressAndMonthlyTrophyPersist() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let suite = "LocalDBEvents.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let url = directory.appendingPathComponent("game.sqlite")
+        let event = try XCTUnwrap(LevelRepository.events.first { $0.kind == .dailyChallenge })
+        let today = Date()
+        let month = ProgressStore.monthKey(for: today)
+        let store = ProgressStore(defaults: defaults, database: try LocalDatabase(url: url))
+
+        for _ in 0..<event.progress.goal { store.recordEventCompletion(event, on: today) }
+        XCTAssertEqual(store.progress(for: event, at: today), event.progress.goal)
+        XCTAssertTrue(store.hasTrophy(for: event, monthKey: month))
+
+        let restored = ProgressStore(defaults: defaults, database: try LocalDatabase(url: url))
+        XCTAssertEqual(restored.progress(for: event, at: today), event.progress.goal)
+        XCTAssertTrue(restored.hasTrophy(for: event, monthKey: month))
+    }
     func testReadOnlyProgressImportIsOneTimeAndResetStaysReset() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

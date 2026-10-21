@@ -12,6 +12,8 @@ struct RootView: View {
                         insertion: .opacity,
                         removal: .opacity.combined(with: .scale(scale: 1.025))
                     ))
+            } else if let eventID = state.selectedEventID, let event = LevelRepository.event(eventID) {
+                EventLevelsView(event: event, store: state.progress)
             } else {
                 HomePagerView(store: state.progress)
                     .transition(.opacity)
@@ -53,7 +55,7 @@ struct MenuView: View {
                 .foregroundColor(GameStyle.muted)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HomeEventsView()
+            HomeEventsView(store: store)
                 .padding(.top, 14)
 
             Spacer(minLength: 12)

@@ -219,6 +219,36 @@ final class LocalDatabase {
     func setHintCount(_ count: Int) throws {
         try transaction { try setMetadata("hints", String(max(0, count))) }
     }
+    func eventProgress(_ eventID: String) throws -> Int {
+        max(0, Int(try metadata("eventProgress.\(eventID)") ?? "0") ?? 0)
+    }
+    func setEventProgress(_ count: Int, eventID: String) throws {
+        try transaction { try setMetadata("eventProgress.\(eventID)", String(max(0, count))) }
+    }
+    func completedEventLevels(_ eventID: String) throws -> Set<Int> {
+        guard let value = try metadata("eventCompleted.\(eventID)"),
+              let data = value.data(using: .utf8) else { return [] }
+        return (try? JSONDecoder().decode(Set<Int>.self, from: data)) ?? []
+    }
+    func saveCompletedEventLevels(_ levels: Set<Int>, eventID: String) throws {
+        let data = try JSONEncoder().encode(levels)
+        let value = String(decoding: data, as: UTF8.self)
+        try transaction {
+            try setMetadata("eventCompleted.\(eventID)", value)
+            try setMetadata("eventProgress.\(eventID)", String(levels.count))
+        }
+    }
+    func eventTrophies(_ eventID: String) throws -> Set<String> {
+        guard let value = try metadata("eventTrophies.\(eventID)"),
+              let data = value.data(using: .utf8),
+              let trophies = try? JSONDecoder().decode(Set<String>.self, from: data) else { return [] }
+        return trophies
+    }
+    func setEventTrophies(_ trophies: Set<String>, eventID: String) throws {
+        let data = try JSONEncoder().encode(trophies)
+        guard let value = String(data: data, encoding: .utf8) else { return }
+        try transaction { try setMetadata("eventTrophies.\(eventID)", value) }
+    }
     func saveActiveSession(_ snapshot: LevelSessionSnapshot) throws {
         let value = try JSONEncoder().encode(snapshot).base64EncodedString()
         try transaction { try setMetadata("activeLevelSession", value) }
@@ -241,6 +271,7 @@ final class LocalDatabase {
                 let key = row.value(forKey: "key") as! String
                 if key == "campaignCompleted" || key == "reserveLives" || key.hasPrefix("bestTime.")
                     || key == "activeLevelSession"
+                    || key.hasPrefix("eventProgress.") || key.hasPrefix("eventTrophies.") || key.hasPrefix("eventCompleted.")
                     || key.hasPrefix("firstCompletionTime.") || key.hasPrefix("lastCompletionTime.")
                     || key.hasPrefix("totalCompletionTime.") || key.hasPrefix("completionCount.")
                     || key.hasPrefix("completed.") { context.delete(row) }

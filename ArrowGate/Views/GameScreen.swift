@@ -15,6 +15,11 @@ struct GameScreen: View {
                     MinimalIconButton(icon: "pause.fill", label: "Pause") { model.pause() }.accessibilityIdentifier("pause")
                 }
                 VStack(spacing: 6) {
+                    if model.eventID != nil {
+                        Text(model.levelDisplayTitle)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundColor(GameStyle.muted)
+                    }
                     if model.hasTimeLimit {
                         Label(model.formattedTime, systemImage: "clock")
                             .font(.system(size: 17, weight: .medium, design: .rounded)).monospacedDigit()
@@ -69,7 +74,7 @@ struct GameScreen: View {
                 Image(systemName: model.phase == .lost ? "heart.slash.fill" : "pause.circle.fill")
                     .font(.system(size: 58)).foregroundColor(model.phase == .lost ? GameStyle.color(.red) : GameStyle.accent)
                 if model.phase == .paused, let difficulty = model.level.difficulty {
-                    Text("Level \(String(model.level.id)) · \(difficulty.title)").foregroundColor(GameStyle.muted)
+                    Text("\(model.levelDisplayTitle) · \(difficulty.title)").foregroundColor(GameStyle.muted)
                 }
                 Text(model.phase == .lost ? (model.lossReason == .timeout ? "Time is up" : "Try a new path") : "Take a breath")
                     .font(.system(size: 28, weight: .bold, design: .rounded)).multilineTextAlignment(.center)
