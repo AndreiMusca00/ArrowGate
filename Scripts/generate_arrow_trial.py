@@ -208,7 +208,7 @@ def draw_board(arrows,active,width,height,path):
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--chapter',type=Path,default=Path('ArrowGate/Levels/chapter-01.json'))
+    ap.add_argument('--chapter',type=Path,default=Path('Backend/ContentSource/Levels/chapter-01.json'))
     ap.add_argument('--output',type=Path,default=Path('Design/ArrowTrial'))
     ap.add_argument('--publish',action='store_true')
     ap.add_argument('--profiles',type=Path,default=Path(__file__).with_name('point_shape_profiles.json'))
@@ -217,7 +217,7 @@ def main():
     chapter=json.loads(args.chapter.read_text());profiles=json.loads(args.profiles.read_text())
     TARGETS=profiles['arrowCounts']
     if len(chapter['levels'])!=len(profiles['chapterPlan']):ap.error('Chapter and plan length mismatch')
-    assets={p.parent.stem:p for p in Path('ArrowGate/Assets.xcassets').rglob('*.png') if p.parent.suffix=='.imageset'}
+    assets={p.parent.stem:p for p in Path('Backend/ContentSource/Artwork').rglob('*.png') if p.parent.suffix=='.imageset'}
     report=[]
     backup=args.output/('original-'+args.chapter.name)
     if not backup.exists():backup.write_text(args.chapter.read_text())

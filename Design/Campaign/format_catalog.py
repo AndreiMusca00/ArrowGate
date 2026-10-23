@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_CATALOG_DIRECTORY = Path(__file__).resolve().parents[2] / "ArrowGate/Levels"
+DEFAULT_CATALOG_DIRECTORY = Path(__file__).resolve().parents[2] / "Backend/ContentSource/Levels"
 INDENT = 2
 MAX_LINE_LENGTH = 150
 

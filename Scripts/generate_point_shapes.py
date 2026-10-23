@@ -85,7 +85,7 @@ def preview(result, source):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--assets',type=Path,default=Path('ArrowGate/Assets.xcassets'))
+    parser.add_argument('--assets',type=Path,default=Path('Backend/ContentSource/Artwork'))
     parser.add_argument('--image',type=Path,help='Process one transparent image instead of all image sets')
     parser.add_argument('--output',type=Path,default=Path('Design/PointShapes'))
     parser.add_argument('--grid-size',type=int,help='Explicit longest side; overrides difficulty size')
@@ -123,7 +123,8 @@ def main():
             difficulty=plan[index] if args.use_plan else level.get('difficulty') or 'normal'
             asset=level.get('completionArtwork')
             if asset not in asset_paths: parser.error(f'Missing artwork asset for level {level["id"]}: {asset}')
-            grid=args.grid_size or (profiles['introGridSizes'][index] if index<len(profiles['introGridSizes']) and difficulty in ('tutorial','easy') else profiles['gridSizes'][difficulty])
+            override=profiles.get('levelOverrides',{}).get(str(level['id']),{})
+            grid=args.grid_size or override.get('gridSize') or (profiles['introGridSizes'][index] if index<len(profiles['introGridSizes']) and difficulty in ('tutorial','easy') else profiles['gridSizes'][difficulty])
             jobs.append((asset_paths[asset],f'level-{level["id"]:03d}-{asset}',grid,difficulty,level['id'],level.get('difficulty')))
     else:
         grid=args.grid_size or profiles['gridSizes'].get(args.difficulty,30)

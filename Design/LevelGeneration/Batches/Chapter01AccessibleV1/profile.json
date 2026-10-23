@@ -1,0 +1,232 @@
+{
+  "gridSizes": {
+    "tutorial": 10,
+    "easy": 22,
+    "normal": 24,
+    "hard": 26,
+    "veryHard": 30,
+    "nightmare": 34
+  },
+  "introGridSizes": [
+    10,
+    12,
+    12,
+    14
+  ],
+  "chapterPlan": [
+    "tutorial",
+    "easy",
+    "easy",
+    "easy",
+    "easy",
+    "easy",
+    "easy",
+    "hard",
+    "easy",
+    "easy",
+    "hard",
+    "easy",
+    "easy",
+    "hard",
+    "easy",
+    "easy",
+    "veryHard",
+    "easy",
+    "hard",
+    "easy",
+    "hard",
+    "easy",
+    "veryHard",
+    "hard",
+    "nightmare"
+  ],
+  "arrowCounts": {
+    "tutorial": 8,
+    "easy": 24,
+    "normal": 28,
+    "hard": 34,
+    "veryHard": 40,
+    "nightmare": 55
+  },
+  "levelOverrides": {
+    "1": {
+      "gridSize": 10,
+      "arrowCount": 8,
+      "timeLimit": 0
+    },
+    "2": {
+      "gridSize": 12,
+      "arrowCount": 10,
+      "timeLimit": 0
+    },
+    "3": {
+      "gridSize": 12,
+      "arrowCount": 12,
+      "timeLimit": 0
+    },
+    "4": {
+      "gridSize": 14,
+      "arrowCount": 14,
+      "timeLimit": 0
+    },
+    "5": {
+      "gridSize": 14,
+      "arrowCount": 16,
+      "timeLimit": 0
+    },
+    "6": {
+      "gridSize": 16,
+      "arrowCount": 18,
+      "timeLimit": 0
+    },
+    "7": {
+      "gridSize": 16,
+      "arrowCount": 20,
+      "timeLimit": 0
+    },
+    "8": {
+      "gridSize": 18,
+      "arrowCount": 22,
+      "timeLimit": 0,
+      "candidateCount": 3,
+      "tuningPasses": 5,
+      "depthWeight": 30,
+      "freeWeight": 1000,
+      "minimumDependencyLayers": 3,
+      "maximumInitiallyFree": 9
+    },
+    "9": {
+      "gridSize": 16,
+      "arrowCount": 20,
+      "timeLimit": 0
+    },
+    "10": {
+      "gridSize": 18,
+      "arrowCount": 22,
+      "timeLimit": 0
+    },
+    "11": {
+      "gridSize": 20,
+      "arrowCount": 24,
+      "timeLimit": 0,
+      "candidateCount": 3,
+      "tuningPasses": 5,
+      "depthWeight": 30,
+      "freeWeight": 1000,
+      "minimumDependencyLayers": 3,
+      "maximumInitiallyFree": 9
+    },
+    "12": {
+      "gridSize": 18,
+      "arrowCount": 24,
+      "timeLimit": 0
+    },
+    "13": {
+      "gridSize": 20,
+      "arrowCount": 26,
+      "timeLimit": 0
+    },
+    "14": {
+      "gridSize": 22,
+      "arrowCount": 28,
+      "timeLimit": 0,
+      "candidateCount": 3,
+      "tuningPasses": 5,
+      "depthWeight": 30,
+      "freeWeight": 1000,
+      "minimumDependencyLayers": 3,
+      "maximumInitiallyFree": 9
+    },
+    "15": {
+      "gridSize": 20,
+      "arrowCount": 28,
+      "timeLimit": 0
+    },
+    "16": {
+      "gridSize": 22,
+      "arrowCount": 30,
+      "timeLimit": 0
+    },
+    "17": {
+      "gridSize": 25,
+      "arrowCount": 34,
+      "timeLimit": 0,
+      "candidateCount": 4,
+      "tuningPasses": 5,
+      "depthWeight": 30,
+      "freeWeight": 1000,
+      "minimumDependencyLayers": 4,
+      "maximumInitiallyFree": 8
+    },
+    "18": {
+      "gridSize": 22,
+      "arrowCount": 30,
+      "timeLimit": 0
+    },
+    "19": {
+      "gridSize": 24,
+      "arrowCount": 34,
+      "timeLimit": 0,
+      "candidateCount": 3,
+      "tuningPasses": 5,
+      "depthWeight": 30,
+      "freeWeight": 1000,
+      "minimumDependencyLayers": 3,
+      "maximumInitiallyFree": 9
+    },
+    "20": {
+      "gridSize": 24,
+      "arrowCount": 32,
+      "timeLimit": 0
+    },
+    "21": {
+      "gridSize": 26,
+      "arrowCount": 36,
+      "timeLimit": 0,
+      "candidateCount": 3,
+      "tuningPasses": 5,
+      "depthWeight": 30,
+      "freeWeight": 1000,
+      "minimumDependencyLayers": 3,
+      "maximumInitiallyFree": 9
+    },
+    "22": {
+      "gridSize": 25,
+      "arrowCount": 34,
+      "timeLimit": 0
+    },
+    "23": {
+      "gridSize": 28,
+      "arrowCount": 40,
+      "timeLimit": 0,
+      "candidateCount": 4,
+      "tuningPasses": 5,
+      "depthWeight": 30,
+      "freeWeight": 1000,
+      "minimumDependencyLayers": 4,
+      "maximumInitiallyFree": 8
+    },
+    "24": {
+      "gridSize": 28,
+      "arrowCount": 42,
+      "timeLimit": 0,
+      "candidateCount": 3,
+      "tuningPasses": 5,
+      "depthWeight": 30,
+      "freeWeight": 1000,
+      "minimumDependencyLayers": 3,
+      "maximumInitiallyFree": 9
+    },
+    "25": {
+      "gridSize": 34,
+      "arrowCount": 55,
+      "timeLimit": 0,
+      "candidateCount": 4,
+      "tuningPasses": 5,
+      "depthWeight": 30,
+      "freeWeight": 1000,
+      "minimumDependencyLayers": 6,
+      "maximumInitiallyFree": 7
+    }
+  }
+}

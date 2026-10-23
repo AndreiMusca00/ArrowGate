@@ -15,7 +15,7 @@ struct ChapterAssemblyFigure: View {
 
             ZStack {
                 if revealsFinalArtwork, let finalArtwork = assembly.finalArtwork {
-                    Image(finalArtwork)
+                    ContentAssetRegistry.image(named: finalArtwork)
                         .resizable()
                         .interpolation(.high)
                         .scaledToFit()
@@ -24,7 +24,7 @@ struct ChapterAssemblyFigure: View {
                 } else {
                     ForEach(Array(assembly.placements.enumerated()), id: \.offset) { index, placement in
                         if revealedPieces.contains(index) {
-                            Image(pieceAssetName(index))
+                            ContentAssetRegistry.image(named: pieceAssetName(index))
                                 .resizable()
                                 .interpolation(.high)
                                 .scaledToFit()

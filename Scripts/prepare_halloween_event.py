@@ -11,7 +11,7 @@ NAMES=['Autumn foundation','Manor facade','Timber gable','Purple slate roof','St
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('atlas',type=Path);args=ap.parse_args()
-    destination=Path('ArrowGate/Assets.xcassets/Halloween 2026')
+    destination=Path('Backend/ContentSource/Artwork/Halloween 2026')
     if destination.exists():raise FileExistsError('Preserve the existing event assets rather than overwrite')
     image=Image.open(args.atlas).convert('RGBA');alpha=np.array(image.getchannel('A'))
     labels,_=label(alpha>=64);regions=find_objects(labels);counts=np.bincount(labels.ravel());slots={}
@@ -33,7 +33,7 @@ def main():
             export(root,f'HalloweenManorPiece{i+1:02d}',tile)
         export(root,'HalloweenManorComplete',Image.open('Design/Events/Halloween2026/halloween-complete.png').convert('RGBA'))
         root.rename(destination)
-    source=json.loads(Path('ArrowGate/Levels/chapter-01.json').read_text())['levels'][24]
+    source=json.loads(Path('Backend/ContentSource/Levels/chapter-01.json').read_text())['levels'][24]
     levels=[]
     for i in range(30):
         level=copy.deepcopy(source)

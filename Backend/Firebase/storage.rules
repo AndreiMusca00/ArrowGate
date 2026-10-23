@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // The app only reads published game content. App Check enforcement is the
+    // additional gate and must be enabled from Firebase Console after testing.
+    match /catalog/{path=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /chapters/{path=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /events/{path=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

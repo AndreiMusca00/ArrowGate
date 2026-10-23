@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 2,
+  "minimumAppVersion": "1.0",
+  "configuration": {"levelsPerChapter": 25},
+  "chapters": [
+    {
+      "chapterID": 2,
+      "version": 1,
+      "firstLevel": 26,
+      "levelCount": 25,
+      "files": [
+        {
+          "remotePath": "chapters/chapter-2/v1/chapter-02.json",
+          "localPath": "chapter-02.json",
+          "sha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+          "byteCount": 1234,
+          "retention": "metadata",
+          "assetName": null
+        },
+        {
+          "remotePath": "chapters/chapter-2/v1/final.webp",
+          "localPath": "final.webp",
+          "sha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+          "byteCount": 1234,
+          "retention": "reward",
+          "assetName": "Chapter2Complete"
+        }
+      ]
+    }
+  ],
+  "events": []
+}

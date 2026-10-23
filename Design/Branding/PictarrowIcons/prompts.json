@@ -1,0 +1,9 @@
+{
+  "tool": "built-in image_gen",
+  "prompts": [
+    "Create one premium iPhone puzzle game app icon for PICTARROW, square 1024x1024 full bleed opaque background. No text, no letters, no mockup, no border, no pre-rounded corners. A striking friendly sculptural arrow maze: three chunky rounded paths, terracotta orange, forest teal and honey yellow, interlocking to form the suggestion of a picture frame and an upward escaping arrow. Soft ivory backdrop, elegant toy-like 3D, tactile matte finish, crisp high contrast silhouettes, restrained shadows, extremely legible at 60px, large central symbol occupying 80 percent. Clean, memorable, polished casual puzzle branding. Not a complex board, only three bold arrow paths.",
+    "Create one premium iPhone picture puzzle game app icon, square 1024x1024 opaque full bleed. No text, letters, border, mockup, or pre-rounded corners. A charming stylized fox face assembled from just four broad curved arrow ribbons in burnt orange, amber and deep forest teal, arrowheads visibly integrated into the ears and cheek shapes. Warm ivory background, centered large unmistakable fox silhouette, friendly black eyes, subtle tactile 3D matte depth and soft shadows, sophisticated cozy forest puzzle aesthetic. Extremely simple bold silhouette and readable at tiny app icon sizes. Original artwork for Pictarrow."
+  ],
+  "activeIcon": "pictarrow-fox-1024.png",
+  "alternative": "pictarrow-arrows-1024.png"
+}

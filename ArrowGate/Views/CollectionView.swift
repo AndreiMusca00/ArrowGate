@@ -248,7 +248,7 @@ private struct EventRewardArtwork: View {
     private var fraction: CGFloat { min(1, max(0, CGFloat(progress) / CGFloat(event.reward.pieceCount))) }
 
     private var rewardImage: Image {
-        if let asset = event.reward.assetName { return Image(asset) }
+        if let asset = event.reward.assetName { return ContentAssetRegistry.image(named: asset) }
         return Image(systemName: event.reward.systemSymbol)
     }
 

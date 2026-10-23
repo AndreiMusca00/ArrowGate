@@ -25,6 +25,10 @@ final class LocalDatabase {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("ArrowGate.sqlite")
     }
+    static var previewURL: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("PictarrowPreview.sqlite")
+    }
     init(url: URL) throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let model = NSManagedObjectModel()
@@ -82,6 +86,9 @@ final class LocalDatabase {
     /// Imports only campaign progress from the previous prototype's store.
     /// Opening it read-only avoids keeping the previous data model in this project.
     func importProgress(from url: URL) throws {
+        // A remote-only app has no level bounds until its first catalog is
+        // installed. Defer migration so invalid legacy IDs are still rejected.
+        guard LevelRepository.count > 0 else { return }
         guard try metadata("previousProgressImported") == nil else { return }
         var values: [String: String] = [:]
         if FileManager.default.fileExists(atPath: url.path) {
@@ -114,12 +121,14 @@ final class LocalDatabase {
     }
     func initializeProgress(defaults: UserDefaults) throws {
         try transaction {
+            let catalogCount = LevelRepository.count
             for row in try rows("Metadata", predicate: NSPredicate(format: "key == %@", "reserveLives")) {
                 context.delete(row)
             }
-            if try metadata("unlocked") == nil {
-                try setMetadata("unlocked", String(min(LevelRepository.count, max(1, defaults.integer(forKey: "unlockedLevel")))))
-                for id in 1...LevelRepository.count where defaults.double(forKey: "bestTime.\(id)") > 0 {
+            if catalogCount > 0, try metadata("unlocked") == nil {
+                let storedUnlocked = max(1, defaults.integer(forKey: "unlockedLevel"))
+                try setMetadata("unlocked", String(min(catalogCount, storedUnlocked)))
+                for id in 1...catalogCount where defaults.double(forKey: "bestTime.\(id)") > 0 {
                     try setMetadata("bestTime.\(id)", String(defaults.double(forKey: "bestTime.\(id)")))
                 }
                 if defaults.bool(forKey: "campaignCompleted") { try setMetadata("campaignCompleted", "1") }
@@ -131,17 +140,19 @@ final class LocalDatabase {
             var unlocked = Int(try metadata("unlocked") ?? "1") ?? 1
             // A completed older campaign stored its final level as `unlocked` because
             // there was no following level. When a chapter is appended, advance it once.
-            if try metadata("campaignCompleted") == "1", unlocked < LevelRepository.count {
+            if catalogCount > 0, try metadata("campaignCompleted") == "1", unlocked < catalogCount {
                 try setMetadata("completed.\(unlocked)", "1")
                 unlocked += 1
                 try setMetadata("unlocked", String(unlocked))
                 try setMetadata("campaignCompleted", "0")
             }
-            for id in 1..<min(max(unlocked, 1), LevelRepository.count + 1) where try metadata("completed.\(id)") == nil {
-                try setMetadata("completed.\(id)", "1")
-            }
-            if try metadata("campaignCompleted") == "1" {
-                try setMetadata("completed.\(LevelRepository.count)", "1")
+            if catalogCount > 0 {
+                for id in 1..<min(max(unlocked, 1), catalogCount + 1) where try metadata("completed.\(id)") == nil {
+                    try setMetadata("completed.\(id)", "1")
+                }
+                if try metadata("campaignCompleted") == "1" {
+                    try setMetadata("completed.\(catalogCount)", "1")
+                }
             }
         }
     }

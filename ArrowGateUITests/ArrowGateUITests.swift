@@ -190,6 +190,44 @@ final class ArrowGateUITests: XCTestCase {
         capture("halloween-locked-calendar")
     }
 
+    func testFoxLaunchIntroRevealsPlayableHome() {
+        app.launch()
+        // XCTest waits for startup animations to idle before launch() returns.
+        let introGone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: app.otherElements["launchIntro"])
+        XCTAssertEqual(XCTWaiter.wait(for: [introGone], timeout: 8), .completed)
+        XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))
+        capture("fox-intro-home")
+        app.buttons["play"].tap()
+        XCTAssertTrue(board.waitForExistence(timeout: 10))
+    }
+
+    func testFreshOfflineInstallShowsRecoverableLoading() {
+        app.launchEnvironment["PICTARROW_LOCAL_ONLY"] = "1"
+        app.launch()
+        XCTAssertTrue(app.otherElements["contentLoading"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["contentRetry"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["play"].exists)
+        capture("pictarrow-offline-first-launch")
+    }
+
+    func testLocalPreviewPickerCanOpenAnyCandidateLevel() {
+        app.launchEnvironment["PICTARROW_CONTENT_PREVIEW"] = "1"
+        app.launchArguments += ["-skip-launch-intro"]
+        app.launch()
+
+        let picker = app.buttons["previewLevelPicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 10))
+        picker.tap()
+
+        let levelTwelve = app.buttons["previewLevel12"]
+        XCTAssertTrue(levelTwelve.waitForExistence(timeout: 5))
+        capture("local-preview-level-picker")
+        levelTwelve.tap()
+
+        XCTAssertTrue(board.waitForExistence(timeout: 10))
+        XCTAssertTrue(waitForLevel(12, timeout: 10))
+    }
+
     func testLiquidGlassNavigationAndDirectPlay() {
         app.launch()
         XCTAssertTrue(app.buttons["play"].waitForExistence(timeout: 10))

@@ -46,6 +46,7 @@ final class ProgressStore: ObservableObject {
     private static let activeSessionDefaultsKey = "activeLevelSession"
     private let defaults: UserDefaults
     private let database: LocalDatabase?
+    private let legacyProgressURL: URL?
     @Published var storageError: String?
     @Published private(set) var savedLevels: [SavedLevel] = []
     @Published private(set) var savedChapters: [SavedChapter] = []
@@ -59,24 +60,37 @@ final class ProgressStore: ObservableObject {
     @Published var sound: Bool { didSet { defaults.set(sound, forKey: "soundEnabled") } }
     @Published var haptics: Bool { didSet { defaults.set(haptics, forKey: "hapticsEnabled") } }
 
-    init(defaults: UserDefaults = .standard, database: LocalDatabase? = nil) {
-        self.defaults = defaults; self.database = database
+    init(
+        defaults: UserDefaults = .standard,
+        database: LocalDatabase? = nil,
+        legacyProgressURL: URL? = nil
+    ) {
+        self.defaults = defaults
+        self.database = database
+        self.legacyProgressURL = legacyProgressURL
         defaults.register(defaults: ["unlockedLevel": 1, "hintCount": 3,
                                      "soundEnabled": true, "hapticsEnabled": true])
         defaults.removeObject(forKey: "reserveLifeCount")
-        unlocked = min(max(defaults.integer(forKey: "unlockedLevel"), 1), LevelRepository.count)
+        let catalogCount = LevelRepository.count
+        let storedUnlocked = max(defaults.integer(forKey: "unlockedLevel"), 1)
+        unlocked = catalogCount > 0 ? min(storedUnlocked, catalogCount) : storedUnlocked
         sound = defaults.bool(forKey: "soundEnabled"); haptics = defaults.bool(forKey: "hapticsEnabled")
         if let database {
             do {
                 try database.initializeProgress(defaults: defaults)
-                try database.saveChapters(LevelRepository.chapters)
-                try database.saveLevels(LevelRepository.levels)
+                if LevelRepository.isReady {
+                    try database.saveChapters(LevelRepository.chapters)
+                    try database.saveLevels(LevelRepository.levels)
+                }
                 savedChapters = try database.chapters()
                 savedLevels = try database.levels()
-                unlocked = min(max(Int(try database.metadata("unlocked") ?? "1") ?? 1, 1), LevelRepository.count)
+                let storedUnlocked = max(Int(try database.metadata("unlocked") ?? "1") ?? 1, 1)
+                unlocked = catalogCount > 0 ? min(storedUnlocked, catalogCount) : storedUnlocked
                 hints = max(0, Int(try database.metadata("hints") ?? "3") ?? 3)
                 completedLevels = Set(1..<unlocked)
-                if try database.metadata("campaignCompleted") == "1" { completedLevels.insert(LevelRepository.count) }
+                if catalogCount > 0, try database.metadata("campaignCompleted") == "1" {
+                    completedLevels.insert(catalogCount)
+                }
                 activeSession = try database.activeSession()
                 for event in LevelRepository.events {
                     let progressKey = Self.progressKey(for: event)
@@ -88,7 +102,7 @@ final class ProgressStore: ObservableObject {
         } else {
             hints = max(0, defaults.integer(forKey: "hintCount"))
             completedLevels = Set(1..<unlocked)
-            if defaults.bool(forKey: "campaignCompleted") {
+            if catalogCount > 0, defaults.bool(forKey: "campaignCompleted") {
                 if unlocked < LevelRepository.count {
                     completedLevels.insert(unlocked)
                     unlocked += 1
@@ -112,6 +126,39 @@ final class ProgressStore: ObservableObject {
                     eventTrophies[event.id] = trophies
                 }
             }
+        }
+    }
+
+    /// Reconciles persisted definitions after a validated remote catalog is
+    /// activated. Player progress and the active session remain untouched.
+    func reloadCatalog() {
+        guard LevelRepository.count > 0 else { return }
+        if let database {
+            do {
+                if let legacyProgressURL {
+                    try database.importProgress(from: legacyProgressURL)
+                }
+                try database.initializeProgress(defaults: defaults)
+                try database.saveChapters(LevelRepository.chapters)
+                try database.saveLevels(LevelRepository.levels)
+                savedChapters = try database.chapters()
+                savedLevels = try database.levels()
+                unlocked = min(max(Int(try database.metadata("unlocked") ?? "1") ?? 1, 1), LevelRepository.count)
+                completedLevels = Set(1..<unlocked)
+                if try database.metadata("campaignCompleted") == "1" {
+                    completedLevels.insert(LevelRepository.count)
+                }
+                for event in LevelRepository.events {
+                    let progressKey = Self.progressKey(for: event)
+                    eventProgress[progressKey] = min(event.progress.goal, try database.eventProgress(progressKey))
+                    eventTrophies[event.id] = try database.eventTrophies(event.id)
+                    completedEventLevels[event.id] = try database.completedEventLevels(event.id)
+                }
+            } catch {
+                storageError = error.localizedDescription
+            }
+        } else {
+            unlocked = min(max(defaults.integer(forKey: "unlockedLevel"), 1), LevelRepository.count)
         }
     }
 

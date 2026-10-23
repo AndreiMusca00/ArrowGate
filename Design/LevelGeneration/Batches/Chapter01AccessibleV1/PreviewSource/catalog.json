@@ -1,0 +1,6 @@
+{
+  "version": 9001,
+  "configuration": {"levelsPerChapter":25},
+  "chapterFiles": ["chapter-01.json"],
+  "eventFiles": []
+}

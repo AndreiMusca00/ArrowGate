@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "minimumAppVersion": "1.0",
+  "configuration": {"levelsPerChapter": 25},
+  "chapters": [],
+  "events": []
+}

@@ -873,7 +873,8 @@ final class GameScene: SKScene, UIGestureRecognizerDelegate {
             let artwork: SKNode
             let renderedArtworkSize: CGSize
             if let artworkName = level.completionArtwork {
-                let texture = SKTexture(imageNamed: artworkName)
+                let texture = ContentAssetRegistry.uiImage(named: artworkName).map(SKTexture.init(image:))
+                    ?? SKTexture(imageNamed: artworkName)
                 let sprite = SKSpriteNode(texture: texture)
                 let naturalSize = texture.size()
                 let fittedScale = naturalSize.width > 0 && naturalSize.height > 0

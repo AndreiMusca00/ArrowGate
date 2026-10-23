@@ -17,8 +17,8 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 DESIGN_ROOT = ROOT / "Design" / "Campaign"
-ASSET_CATALOG = ROOT / "ArrowGate" / "Assets.xcassets"
-DESTINATION = ASSET_CATALOG / "Chapter 1"
+CONTENT_ARTWORK = ROOT / "Backend" / "ContentSource" / "Artwork"
+DESTINATION = CONTENT_ARTWORK / "Chapter 1"
 COMPLETE_SOURCE = DESIGN_ROOT / "treehouse-3d-concept.png"
 PIECES_SOURCE = DESIGN_ROOT / "treehouse-3d-pieces"
 ASSET_PREFIX = "EnchantedTree"
@@ -71,10 +71,10 @@ def build_staged_group(staging: Path) -> None:
 
 def publish_group() -> None:
     staging_parent = Path(
-        tempfile.mkdtemp(prefix=".chapter-artwork-", dir=ASSET_CATALOG.parent)
+        tempfile.mkdtemp(prefix=".chapter-artwork-", dir=CONTENT_ARTWORK)
     )
     staging = staging_parent / DESTINATION.name
-    backup = ASSET_CATALOG / f".{DESTINATION.name}.previous"
+    backup = CONTENT_ARTWORK / f".{DESTINATION.name}.previous"
     moved_existing = False
 
     try:

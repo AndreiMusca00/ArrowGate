@@ -68,7 +68,7 @@ def preview(level,path):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--chapter',type=Path,default=Path('ArrowGate/Levels/chapter-01.json'))
+    parser.add_argument('--chapter',type=Path,default=Path('Backend/ContentSource/Levels/chapter-01.json'))
     parser.add_argument('--output',type=Path,default=Path('Design/ColourMapping'))
     parser.add_argument('--palette-size',type=int,default=12)
     parser.add_argument('--minimum-contrast',type=float,default=4.5)
@@ -77,7 +77,7 @@ def main():
     if not 2<=args.palette_size<=64 or not 1<=args.minimum_contrast<=21:parser.error('Invalid palette size or contrast')
     chapter=json.loads(args.chapter.read_text());before=copy.deepcopy(chapter)
     args.output.mkdir(parents=True,exist_ok=True)
-    assets={p.parent.stem:p for p in Path('ArrowGate/Assets.xcassets').rglob('*.png') if p.parent.suffix=='.imageset'}
+    assets={p.parent.stem:p for p in Path('Backend/ContentSource/Artwork').rglob('*.png') if p.parent.suffix=='.imageset'}
     report=[]
     for level in chapter['levels']:
         changes=map_level(level,assets[level['completionArtwork']],args.palette_size,args.minimum_contrast)

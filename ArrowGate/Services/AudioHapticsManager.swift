@@ -5,15 +5,22 @@ final class AudioHapticsManager {
     private let store: ProgressStore
     private let impact = UIImpactFeedbackGenerator(style: .soft)
     private let notification = UINotificationFeedbackGenerator()
+    /// AVAudioSession configuration can synchronously contact the audio daemon.
+    /// Keep it and every AVAudioPlayer operation off the main thread.
+    private let audioQueue = DispatchQueue(label: "com.pictarrow.audio", qos: .userInitiated)
     private var successPlayer: AVAudioPlayer?
     private var errorPlayer: AVAudioPlayer?
     private var audioPrepared = false
+
     init(store: ProgressStore) {
         self.store = store
         impact.prepare(); notification.prepare()
-        if store.sound { prepareAudio() }
+        if store.sound {
+            audioQueue.async { [weak self] in self?.prepareAudioOnQueue() }
+        }
     }
-    private func prepareAudio() {
+
+    private func prepareAudioOnQueue() {
         guard !audioPrepared else { return }
         try? AVAudioSession.sharedInstance().setCategory(.ambient)
         successPlayer = makePlayer(success: true); errorPlayer = makePlayer(success: false)
@@ -26,9 +33,13 @@ final class AudioHapticsManager {
     func feedback(success: Bool) {
         if store.haptics { notification.notificationOccurred(success ? .success : .error); notification.prepare() }
         guard store.sound else { return }
-        prepareAudio()
-        let player = success ? successPlayer : errorPlayer
-        player?.currentTime = 0; player?.play()
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            self.prepareAudioOnQueue()
+            let player = success ? self.successPlayer : self.errorPlayer
+            player?.currentTime = 0
+            player?.play()
+        }
     }
     private func makePlayer(success: Bool) -> AVAudioPlayer? {
         // Small synthesized tones, with no external asset or dependency.

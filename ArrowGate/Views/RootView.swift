@@ -2,10 +2,17 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var state: AppState
+    @State private var showingIntro = !ProcessInfo.processInfo.arguments.contains("-skip-launch-intro")
     var body: some View {
         ZStack {
             GameStyle.background.ignoresSafeArea()
-            if let game = state.game {
+            if state.contentAvailability != .ready {
+                ContentLoadingView(
+                    needsConnection: state.contentAvailability == .needsConnection,
+                    retry: state.retryContentLoading
+                )
+                .transition(.opacity)
+            } else if let game = state.game {
                 GameScreen(model: game)
                     .id(ObjectIdentifier(game))
                     .transition(.asymmetric(
@@ -19,7 +26,14 @@ struct RootView: View {
                     .transition(.opacity)
             }
         }
+        .animation(.easeInOut(duration: 0.32), value: state.contentAvailability)
         .animation(.easeInOut(duration: 0.42), value: state.game == nil)
+        .overlay {
+            if showingIntro {
+                LaunchIntroView { showingIntro = false }
+            }
+        }
+        .allowsHitTesting(!showingIntro)
     }
 }
 struct ActionButton: View {
@@ -41,6 +55,8 @@ struct ActionButton: View {
 struct MenuView: View {
     @EnvironmentObject private var state: AppState
     @ObservedObject var store: ProgressStore
+    @State private var showingTestLevels = false
+    @State private var pendingTestLevelID: Int?
 
     private var playLevel: LevelDefinition {
         let id = state.homeLevelNumber
@@ -55,26 +71,60 @@ struct MenuView: View {
                 .foregroundColor(GameStyle.muted)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+            if state.isContentPreview {
+                HStack(spacing: 8) {
+                    Text("LOCAL LEVEL PREVIEW")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .tracking(1.1)
+                        .foregroundStyle(Color.orange.opacity(0.9))
+                        .padding(.horizontal, 10)
+                        .frame(height: 28)
+                        .background(Color.orange.opacity(0.1), in: Capsule())
+
+                    Spacer(minLength: 8)
+
+                    Button {
+                        showingTestLevels = true
+                    } label: {
+                        Label("TEST LEVELS", systemImage: "square.grid.3x3.fill")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .tracking(0.7)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 11)
+                            .frame(height: 28)
+                            .background(Color.orange, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("previewLevelPicker")
+                }
+                .padding(.top, 8)
+            }
+
             HomeEventsView(store: store)
                 .padding(.top, 14)
 
             Spacer(minLength: 12)
-            HStack(spacing: 12) {
-                ForEach(Array(ArrowColor.allCases.prefix(4).enumerated()), id: \.offset) { index, color in
-                    Image(systemName: ["arrow.right", "arrow.up", "arrow.down", "arrow.left"][index])
-                        .font(.system(size: 25, weight: .regular)).foregroundColor(GameStyle.color(color))
-                        .frame(width: 49, height: 54).background(GameStyle.panel, in: RoundedRectangle(cornerRadius: 16))
-                        .rotationEffect(.degrees(index.isMultiple(of: 2) ? -8 : 8))
-                }
-            }.padding(.bottom, 18).accessibilityHidden(true)
             Text("PICTARROW").font(.system(size: 44, weight: .bold, design: .rounded)).tracking(-1.5)
                 .multilineTextAlignment(.center)
-            Text("A puzzle hides in every picture.").font(.system(size: 15, design: .rounded))
-                .foregroundColor(GameStyle.muted).padding(.top, 8)
             Spacer(minLength: 16)
             HomePlayButton(level: playLevel) { state.play() }
             Spacer(minLength: 20)
-        }.foregroundColor(GameStyle.ink).padding(.horizontal, 28).padding(.vertical, 16)
+        }
+        .foregroundColor(GameStyle.ink)
+        .padding(.horizontal, 28)
+        .padding(.vertical, 16)
+        .sheet(isPresented: $showingTestLevels, onDismiss: openPendingTestLevel) {
+            LocalLevelPicker(levels: LevelRepository.levels) { levelID in
+                pendingTestLevelID = levelID
+                showingTestLevels = false
+            }
+        }
+    }
+
+    private func openPendingTestLevel() {
+        guard let levelID = pendingTestLevelID else { return }
+        pendingTestLevelID = nil
+        state.play(levelID)
     }
 }
 struct SettingsView: View {

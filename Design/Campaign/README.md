@@ -1,5 +1,7 @@
 # Pictarrow chapter workflow
 
+> Pentru procesul actual complet, reguli și comenzi, citește [workflow-ul permanent](../LevelGeneration/WORKFLOW.md). Acest document descrie structura artwork-ului de capitol; referințele la unelte istorice nu garantează că acele unelte mai există.
+
 Artwork and playable levels are two separate authoring stages.
 
 ## 1. Create the collectible
@@ -11,11 +13,12 @@ Artwork and playable levels are two separate authoring stages.
 4. Export the objects as `treehouse-3d-pieces/piece-01.png` through
    `piece-24.png`, in the order in which the player should collect them.
 5. Record their normalized position and scale in the chapter's `assembly`
-   section in `ArrowGate/Levels/chapter-01.json`.
+   section in `Backend/ContentSource/Levels/chapter-01.json`.
 
 `prepare_chapter_artwork.py` only validates and copies those finished images
-into `Assets.xcassets/Chapter 1`. It never creates levels and never writes to
-`catalog.json`.
+into `Backend/ContentSource/Artwork/Chapter 1`. It never creates levels and
+never writes to `catalog.json`. Content artwork is published to Firebase and is
+not compiled into the iOS app.
 
 ## 2. Author the levels
 
@@ -43,7 +46,7 @@ remain separate binary assets; a future hosted catalog can add their download
 locations without changing the gameplay model.
 
 After editing any catalog file, run
-`python3 Design/Campaign/format_catalog.py`. The formatter processes the index
+`python3 Design/Campaign/format_catalog.py` with explicit paths to only the changed catalog files. Without paths the formatter processes the index
 and every chapter file, keeping their structure readable while grouping
 coordinate objects on bounded lines. It validates each formatted file before
 replacing it.

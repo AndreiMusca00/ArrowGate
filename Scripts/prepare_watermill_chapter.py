@@ -23,7 +23,7 @@ def main():
     ap.add_argument('--chapter',type=Path,default=Path('Design/Campaign/Watermill/chapter-02.json'))
     args=ap.parse_args()
     image=Image.open(args.atlas).convert('RGBA')
-    root=Path('ArrowGate/Assets.xcassets/Chapter 2');root.mkdir(parents=True,exist_ok=True)
+    root=Path('Backend/ContentSource/Artwork/Chapter 2');root.mkdir(parents=True,exist_ok=True)
     (root/'Contents.json').write_text(json.dumps({'info':{'author':'xcode','version':1}},indent=2)+'\n')
     # Segment atlas objects globally rather than cutting on cell boundaries:
     # a sprite may extend a few pixels into a neighboring gutter.
@@ -48,7 +48,7 @@ def main():
         pieces.append(tile)
         export(root,f'ForestWatermillPiece{index+1:02d}',tile)
     export(root,'ForestWatermillComplete',Image.open('Design/Campaign/Watermill/watermill-complete.png').convert('RGBA'))
-    original=json.loads(Path('ArrowGate/Levels/chapter-01.json').read_text())
+    original=json.loads(Path('Backend/ContentSource/Levels/chapter-01.json').read_text())
     chapter=copy.deepcopy(original['chapter']);chapter.update(id=2,name='The Woodland Watermill',subtitle='Bring the forest stream to life',symbol='water.waves')
     chapter['style'].update(primaryColor='#237A84',secondaryColor='#BA613B',backgroundColor='#E4F1EB',decorations=['≈','❧','✦'])
     chapter['assembly'].update(assetPrefix='ForestWatermillPiece',finalArtwork='ForestWatermillComplete',placements=[dict(x=x,y=y,scale=s) for x,y,s in PLACEMENTS])

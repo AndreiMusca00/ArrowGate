@@ -26,7 +26,7 @@ struct EventLevelsView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     if artworkRevealed, let artwork = event.reward.assetName {
-                        Image(artwork).resizable().scaledToFit().frame(height: 165)
+                        ContentAssetRegistry.image(named: artwork).resizable().scaledToFit().frame(height: 165)
                             .accessibilityLabel(event.reward.title)
                             .accessibilityIdentifier("eventFinalArtwork")
                     } else {
@@ -75,7 +75,7 @@ struct EventLevelsView: View {
         return Button { state.playEvent(event.id, day: puzzle.day) } label: {
             VStack(spacing: 7) {
                 if completed, let asset = puzzle.level.completionArtwork {
-                    Image(asset).resizable().scaledToFit().frame(height: 48)
+                    ContentAssetRegistry.image(named: asset).resizable().scaledToFit().frame(height: 48)
                         .accessibilityIdentifier("eventPieceArtwork\(puzzle.day)")
                 } else {
                     Image(systemName: unlocked ? "questionmark" : "lock.fill")

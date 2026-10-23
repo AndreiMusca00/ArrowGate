@@ -23,7 +23,7 @@ def main():
     ap.add_argument('--chapter',type=Path,default=Path('Design/Campaign/MushroomVillage/chapter-03.json'))
     args=ap.parse_args()
     image=Image.open(args.atlas).convert('RGBA')
-    root=Path('ArrowGate/Assets.xcassets/Chapter 3');root.mkdir(parents=True,exist_ok=True)
+    root=Path('Backend/ContentSource/Artwork/Chapter 3');root.mkdir(parents=True,exist_ok=True)
     (root/'Contents.json').write_text(json.dumps({'info':{'author':'xcode','version':1}},indent=2)+'\n')
     # Segment atlas objects globally rather than cutting on cell boundaries:
     # a sprite may extend a few pixels into a neighboring gutter.
@@ -48,7 +48,7 @@ def main():
         pieces.append(tile)
         export(root,f'ForestMushroomPiece{index+1:02d}',tile)
     export(root,'ForestMushroomComplete',Image.open('Design/Campaign/MushroomVillage/mushroom-complete.png').convert('RGBA'))
-    original=json.loads(Path('ArrowGate/Levels/chapter-01.json').read_text())
+    original=json.loads(Path('Backend/ContentSource/Levels/chapter-01.json').read_text())
     chapter=copy.deepcopy(original['chapter']);chapter.update(id=3,name='The Mushroom Village',subtitle='A little village beneath the forest caps',symbol='leaf.fill')
     chapter['style'].update(primaryColor='#924D3E',secondaryColor='#4E794C',backgroundColor='#F4EBDF',decorations=['✿','❧','✦'])
     chapter['assembly'].update(assetPrefix='ForestMushroomPiece',finalArtwork='ForestMushroomComplete',placements=[dict(x=x,y=y,scale=s) for x,y,s in PLACEMENTS])
